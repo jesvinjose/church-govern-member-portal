@@ -1,0 +1,146 @@
+import { Response } from "express";
+
+import { AuthRequest } from "../../middlewares/auth.middleware";
+
+import { MemberAuthRequest } from "../../middlewares/memberAuth.middleware";
+
+import { catchAsync } from "../../utils/catchAsync";
+
+import { sendResponse } from "../../utils/response";
+
+import { createFamilySchema, createMemberSchema } from "./family.validation";
+
+import { createFamilyService, createMemberService, getMyFamilyService } from "./family.service";
+import prisma from "../../config/prisma";
+
+export const createFamily = catchAsync(
+  async (
+    req: AuthRequest,
+    res: Response
+  ) => {
+
+    console.log("Body:", req.body);
+
+    const validatedData =
+      createFamilySchema.parse(req.body);
+
+    if (!req.tenant_id) {
+
+      return sendResponse(
+        res,
+        403,
+        "Tenant not found in token"
+      );
+
+    }
+
+    const family =
+      await createFamilyService(
+        {
+          ...validatedData,
+          tenant_id: req.tenant_id,
+        }
+      );
+
+    return sendResponse(
+      res,
+      201,
+      "Family created successfully",
+      family
+    );
+
+  }
+);
+
+export const createMember = catchAsync(
+    async (
+        req: AuthRequest,
+        res: Response
+    ) => {
+
+        const familyId =
+            req.params.familyId as string;
+
+        const tenant_id =
+            req.tenant_id;
+
+        if (!tenant_id) {
+
+            return sendResponse(
+                res,
+                403,
+                "Tenant not found"
+            );
+
+        }
+
+        const validatedData =
+            createMemberSchema.parse(
+                req.body
+            );
+
+        // Verify family belongs to same tenant
+
+        const family =
+            await prisma.family.findFirst({
+                where: {
+                    id: familyId,
+                    tenant_id,
+                },
+            });
+
+        if (!family) {
+
+            return sendResponse(
+                res,
+                404,
+                "Family not found"
+            );
+
+        }
+
+        const member =
+            await createMemberService({
+                ...validatedData,
+
+                tenant_id,
+
+                family_id: familyId,
+
+                dob: validatedData.dob
+                    ? new Date(validatedData.dob)
+                    : undefined,
+            });
+
+        return sendResponse(
+            res,
+            201,
+            "Member created successfully",
+            member
+        );
+
+    }
+);
+
+export const getMyFamily =
+  catchAsync(
+    async (
+      req: MemberAuthRequest,
+      res: Response
+    ) => {
+
+      const family =
+        await getMyFamilyService(
+          req.family_id as string,
+          req.tenant_id as string
+        );
+
+      return sendResponse(
+        res,
+        200,
+        "Family fetched successfully",
+        family
+      );
+
+    }
+  );

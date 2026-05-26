@@ -1,0 +1,413 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Tenant {
+  id            String         @id @default(uuid())
+  name          String
+  slug          String         @unique
+  email         String?
+  is_active     Boolean        @default(true)
+  announcements Announcement[]
+
+  created_at DateTime @default(now())
+
+  users    User[]
+  families Family[]
+  members  Member[]
+  requests Request[]
+  contributions Contribution[]
+
+  roles Role[]
+
+  @@map("tenants")
+}
+
+model User {
+  id String @id @default(uuid())
+
+  first_name String
+
+  last_name String
+
+  email String @unique
+
+  phone String?
+
+  password_hash String
+
+  tenant_id String?
+
+  tenant Tenant? @relation(fields: [tenant_id], references: [id])
+
+  is_active Boolean @default(true)
+
+  created_at DateTime @default(now())
+
+  updated_at DateTime @updatedAt
+
+  password_reset_tokens PasswordResetToken[]
+
+  roles UserRole[]
+
+  otp OTP[]
+
+  @@index([tenant_id])
+  @@map("users")
+}
+
+model UserRole {
+  id String @id @default(uuid())
+
+  user_id String
+
+  role_id String
+
+  user User @relation(fields: [user_id], references: [id])
+
+  role Role @relation(fields: [role_id], references: [id])
+
+  @@unique([user_id, role_id])
+  @@map("user_roles")
+}
+
+model Role {
+  id String @id @default(uuid())
+
+  name String
+
+  description String?
+
+  tenant_id String?
+
+  tenant Tenant? @relation(fields: [tenant_id], references: [id])
+
+  users UserRole[]
+
+  created_at DateTime @default(now())
+
+  @@unique([tenant_id, name])
+  @@index([tenant_id])
+  @@map("roles")
+}
+
+model PasswordResetToken {
+  id String @id @default(uuid())
+
+  user_id String
+
+  token String @unique
+
+  expiresAt DateTime
+
+  used Boolean @default(false)
+
+  user User @relation(fields: [user_id], references: [id])
+
+  @@map("password_reset_tokens")
+}
+
+model Family {
+  id String @id @default(uuid())
+
+  tenant_id String
+
+  tenant Tenant @relation(fields: [tenant_id], references: [id])
+
+  serial_no String
+
+  head_name String
+
+  name String
+
+  house_name String?
+
+  phone String?
+
+  address_line1 String?
+
+  address_line2 String?
+
+  city String?
+
+  state String?
+
+  postal_code String?
+
+  notes String?
+
+  requests Request[]
+
+  is_active Boolean @default(true)
+
+  contributions Contribution[]
+
+  created_at DateTime @default(now())
+
+  updated_at DateTime @updatedAt
+
+  members Member[]
+
+  @@index([tenant_id])
+  @@map("familys")
+}
+
+model Member {
+  id String @id @default(uuid())
+
+  tenant_id String
+
+  tenant Tenant @relation(fields: [tenant_id], references: [id])
+
+  family_id String
+
+  family Family @relation(fields: [family_id], references: [id])
+
+  name String
+
+  gender Gender
+
+  dob DateTime?
+
+  phone String?
+
+  email String @unique
+
+  profession String?
+
+  christening_name String?
+
+  relation String?
+
+  is_active Boolean @default(true)
+
+  member_otps MemberOTP[]
+
+  requests Request[]
+
+  contributions Contribution[]
+
+  created_at DateTime @default(now())
+
+  updated_at DateTime @updatedAt
+
+  @@index([tenant_id])
+  @@index([family_id])
+  @@map("members")
+}
+
+enum Gender {
+  MALE
+  FEMALE
+  OTHER
+}
+
+enum OTPPurpose {
+  LOGIN
+  RESET_PASSWORD
+  VERIFY_PHONE
+  VERIFY_EMAIL
+}
+
+model OTP {
+  id String @id @default(uuid())
+
+  code String
+
+  purpose OTPPurpose
+
+  expires_at DateTime
+
+  verified Boolean @default(false)
+
+  user_id String
+
+  user User @relation(fields: [user_id], references: [id])
+
+  @@map("otp")
+}
+
+model MemberOTP {
+  id String @id @default(uuid())
+
+  code String
+
+  purpose MemberOTPPurpose
+
+  expires_at DateTime
+
+  verified Boolean @default(false)
+
+  member_id String
+
+  member Member @relation(fields: [member_id], references: [id])
+
+  created_at DateTime @default(now())
+
+  @@map("member_otp")
+}
+
+enum MemberOTPPurpose {
+  LOGIN
+  VERIFY_PHONE
+  VERIFY_EMAIL
+}
+
+model Announcement {
+  id String @id @default(uuid())
+
+  tenant_id String
+
+  tenant Tenant @relation(fields: [tenant_id], references: [id])
+
+  title String
+
+  content String
+
+  category AnnouncementCategory
+
+  is_important Boolean @default(false)
+
+  is_active Boolean @default(true)
+
+  created_by String?
+
+  created_at DateTime @default(now())
+
+  updated_at DateTime @updatedAt
+
+  @@index([tenant_id])
+  @@map("announcements")
+}
+
+enum AnnouncementCategory {
+  GENERAL
+  EVENT
+  PRAYER
+  SERVICE
+  PERSONAL
+}
+
+model Request {
+  id String @id @default(uuid())
+
+  tenant_id String
+
+  member_id String
+
+  family_id String
+
+  type RequestType
+
+  status RequestStatus @default(PENDING)
+
+  payload Json
+
+  notes String?
+
+  created_at DateTime @default(now())
+
+  updated_at DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenant_id], references: [id])
+
+  member Member @relation(fields: [member_id], references: [id])
+
+  family Family @relation(fields: [family_id], references: [id])
+
+  @@index([tenant_id])
+
+  @@index([member_id])
+
+  @@map("requests")
+}
+
+enum RequestType {
+  BAPTISM
+  MARRIAGE
+  DEATH_REGISTRATION
+  CERTIFICATE
+}
+
+enum RequestStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model Contribution {
+  id String @id @default(uuid())
+
+  tenant_id String
+
+  member_id String
+
+  family_id String
+
+  receipt_no String? @unique
+
+  type ContributionType
+
+  amount Decimal @db.Decimal(10, 2)
+
+  purpose String
+
+  payment_method PaymentMethod
+
+  privacy ContributionPrivacy
+
+  status ContributionStatus @default(PENDING)
+
+  notes String?
+
+  verified_at DateTime?
+
+  created_at DateTime @default(now())
+
+  updated_at DateTime @updatedAt
+
+  tenant Tenant @relation(fields: [tenant_id], references: [id])
+
+  member Member @relation(fields: [member_id], references: [id])
+
+  family Family @relation(fields: [family_id], references: [id])
+
+  @@index([tenant_id])
+
+  @@index([member_id])
+
+  @@index([family_id])
+
+  @@index([status])
+
+  @@map("contributions")
+}
+
+enum ContributionType {
+  DONATION
+  SUBSCRIPTION
+}
+
+enum PaymentMethod {
+  BANK_TRANSFER
+  CASH
+  UPI
+  CARD
+  CHEQUE
+}
+
+enum ContributionPrivacy {
+  PUBLIC
+  PRIVATE
+}
+
+enum ContributionStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
