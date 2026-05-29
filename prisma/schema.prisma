@@ -17,11 +17,12 @@ model Tenant {
 
   created_at DateTime @default(now())
 
-  users    User[]
-  families Family[]
-  members  Member[]
-  requests Request[]
+  users         User[]
+  families      Family[]
+  members       Member[]
+  requests      Request[]
   contributions Contribution[]
+  notifications Notification[]
 
   roles Role[]
 
@@ -52,6 +53,8 @@ model User {
   updated_at DateTime @updatedAt
 
   password_reset_tokens PasswordResetToken[]
+
+  notifications Notification[]
 
   roles UserRole[]
 
@@ -192,6 +195,8 @@ model Member {
 
   contributions Contribution[]
 
+  notifications Notification[]
+
   created_at DateTime @default(now())
 
   updated_at DateTime @updatedAt
@@ -321,9 +326,7 @@ model Request {
   family Family @relation(fields: [family_id], references: [id])
 
   @@index([tenant_id])
-
   @@index([member_id])
-
   @@map("requests")
 }
 
@@ -338,6 +341,7 @@ enum RequestStatus {
   PENDING
   APPROVED
   REJECTED
+  COMPLETED
 }
 
 model Contribution {
@@ -378,13 +382,9 @@ model Contribution {
   family Family @relation(fields: [family_id], references: [id])
 
   @@index([tenant_id])
-
   @@index([member_id])
-
   @@index([family_id])
-
   @@index([status])
-
   @@map("contributions")
 }
 
@@ -410,4 +410,40 @@ enum ContributionStatus {
   PENDING
   APPROVED
   REJECTED
+}
+
+model Notification {
+  id String @id @default(uuid())
+
+  tenant_id String
+
+  user_id   String?
+  member_id String?
+
+  title   String
+  message String
+
+  type NotificationType
+
+  is_read Boolean @default(false)
+
+  metadata Json?
+
+  created_at DateTime @default(now())
+
+  tenant Tenant @relation(fields: [tenant_id], references: [id])
+
+  user   User?   @relation(fields: [user_id], references: [id])
+  member Member? @relation(fields: [member_id], references: [id])
+
+  @@index([tenant_id])
+  @@index([user_id])
+  @@index([member_id])
+}
+
+enum NotificationType {
+  REQUEST
+  CONTRIBUTION
+  ANNOUNCEMENT
+  SYSTEM
 }

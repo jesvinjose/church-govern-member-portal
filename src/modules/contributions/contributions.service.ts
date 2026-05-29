@@ -1,4 +1,6 @@
 import prisma from "../../config/prisma";
+import { notifyTenantAdmins } from "../notifications/notification.helper";
+import { createNotification } from "../notifications/notification.service";
 
 type CreateContributionPayload = {
 
@@ -35,15 +37,43 @@ export const createContributionService =
     payload: CreateContributionPayload
   ) => {
 
-    return prisma.contribution.create({
+    const contribution =
+      await prisma.contribution.create({
 
-      data: {
-        ...payload,
+        data: {
+          ...payload,
 
-        status: "PENDING",
+          status: "PENDING",
+        },
+        include: {
+          member: true,
+        },
+      });
+    // Notify parish admins
+    await notifyTenantAdmins({
+
+      tenant_id:
+        contribution.tenant_id,
+
+      title:
+        "New Contribution Submitted",
+
+      message:
+        `${contribution.member.name} submitted a contribution of ₹${contribution.amount}`,
+
+      type:
+        "CONTRIBUTION",
+
+      metadata: {
+
+        contribution_id:
+          contribution.id,
+
       },
 
     });
+
+    return contribution;
 
   };
 
@@ -219,27 +249,63 @@ export const updateContributionStatusService =
 
     }
 
-    return prisma.contribution.update({
+    const updatedContribution =
+      await prisma.contribution.update({
 
-      where: {
-        id,
-      },
+        where: {
+          id,
+        },
 
-      data: {
+        data: {
+
+          status,
+
+          verified_at:
+            status === "APPROVED"
+              ? new Date()
+              : null,
+
+          receipt_no:
+            status === "APPROVED"
+              ? `RCPT-${Date.now()}`
+              : null,
+        },
+
+      });
+
+    // Notify member
+    await createNotification({
+
+      tenant_id:
+        contribution.tenant_id,
+
+      member_id:
+        contribution.member_id,
+
+      title:
+        status === "APPROVED"
+          ? "Contribution Approved"
+          : "Contribution Rejected",
+
+      message:
+        status === "APPROVED"
+          ? "Your contribution has been approved"
+          : "Your contribution has been rejected",
+
+      type:
+        "CONTRIBUTION",
+
+      metadata: {
+
+        contribution_id:
+          contribution.id,
 
         status,
 
-        verified_at:
-          status === "APPROVED"
-            ? new Date()
-            : null,
-
-        receipt_no:
-          status === "APPROVED"
-            ? `RCPT-${Date.now()}`
-            : null,
       },
 
     });
+
+    return updatedContribution;
 
   };

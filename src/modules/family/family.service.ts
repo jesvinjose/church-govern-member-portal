@@ -107,3 +107,118 @@ export const createMemberService = async (
   return member;
 
 };
+
+export const getFamiliesService =
+  async (
+    tenant_id: string
+  ) => {
+
+    return prisma.family.findMany({
+
+      where: {
+        tenant_id,
+      },
+
+      include: {
+
+        members: {
+          select: {
+            id: true,
+            name: true,
+            gender: true,
+            relation: true,
+            phone: true,
+            email: true,
+          },
+        },
+
+      },
+
+      orderBy: {
+        created_at: "desc",
+      },
+
+    });
+
+  };
+
+export const updateMemberService =
+  async (
+    memberId: string,
+    tenant_id: string,
+    payload: {
+      name?: string;
+      gender?: "MALE" | "FEMALE" | "OTHER";
+      dob?: Date;
+      phone?: string;
+      email?: string;
+      profession?: string;
+      christening_name?: string;
+      relation?: string;
+    }
+  ) => {
+
+    const member =
+      await prisma.member.findFirst({
+
+        where: {
+          id: memberId,
+          tenant_id,
+        },
+
+      });
+
+    if (!member) {
+
+      throw new Error(
+        "Member not found"
+      );
+
+    }
+
+    return prisma.member.update({
+
+      where: {
+        id: memberId,
+      },
+
+      data: payload,
+
+    });
+
+  };
+
+export const getFamilyMembersDropdownService =
+  async (
+    familyId: string,
+    tenant_id: string
+  ) => {
+
+    return prisma.member.findMany({
+
+      where: {
+        family_id: familyId,
+        tenant_id,
+      },
+
+      select: {
+
+        id: true,
+
+        name: true,
+
+        gender: true,
+
+        relation: true,
+
+        dob: true,
+
+      },
+
+      orderBy: {
+        name: "asc",
+      },
+
+    });
+
+  };

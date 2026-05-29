@@ -15,7 +15,7 @@ const router = Router();
 
 router.post("/send-otp", sendMemberOtp);
 
-router.post("/login", memberLogin);
+router.post("/verify-otp", memberLogin);
 
 router.get("/profile", memberAuthMiddleware, getMemberProfile);
 

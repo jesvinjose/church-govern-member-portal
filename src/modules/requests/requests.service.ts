@@ -1,5 +1,9 @@
 import prisma from "../../config/prisma";
 
+import { notifyTenantAdmins }
+  from "../notifications/notification.helper";
+import { createNotification } from "../notifications/notification.service";
+
 type CreateRequestPayload = {
 
   tenant_id: string;
@@ -27,7 +31,27 @@ export const createRequestService =
     const request =
       await prisma.request.create({
         data: payload,
+        include: {
+          member: true,
+        },
       });
+
+    // Notify parish admins
+    await notifyTenantAdmins({
+
+      tenant_id: payload.tenant_id,
+
+      title: "New Service Request",
+
+      message:
+        `${request.member.name} submitted a ${request.type} request`,
+
+      type: "REQUEST",
+
+      metadata: {
+        request_id: request.id,
+      },
+    });
 
     return request;
 
@@ -138,7 +162,7 @@ export const updateRequestStatusService =
 
     }
 
-    return prisma.request.update({
+    const updatedRequest = await prisma.request.update({
 
       where: {
         id,
@@ -156,5 +180,33 @@ export const updateRequestStatusService =
       },
 
     });
+
+    // Notify member
+    await createNotification({
+
+      tenant_id: request.tenant_id,
+
+      member_id: request.member_id,
+
+      title:
+        status === "APPROVED"
+          ? "Request Approved"
+          : "Request Rejected",
+
+      message:
+        status === "APPROVED"
+          ? "Your request has been approved"
+          : "Your request has been rejected",
+
+      type: "REQUEST",
+
+      metadata: {
+        request_id: request.id,
+        status,
+      },
+
+    });
+
+    return updatedRequest;
 
   };

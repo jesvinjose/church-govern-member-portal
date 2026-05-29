@@ -10,6 +10,7 @@ import announcementRoutes from "./modules/announcements/announcement.routes";
 import requestRoutes from "./modules/requests/requests.routes";
 import contributionRoutes from "./modules/contributions/contributions.routes";
 import dashboardRoutes from "./modules/dashboard/dashboard.routes";
+import notificationRoutes from "./modules/notifications/notification.routes";
 import { errorMiddleware } from "./middlewares/error.middleware";
 
 const app = express();
@@ -24,19 +25,21 @@ app.use(helmet());
 
 app.use(morgan("dev"));
 
-app.use("/auth", authRoutes);
+app.use("/api/auth", authRoutes);
 
-app.use("/member-auth", memberAuthRoutes);
+app.use("/api/member-auth", memberAuthRoutes);
 
-app.use("/family", familyRoutes);
+app.use("/api/family", familyRoutes);
 
-app.use("/announcements", announcementRoutes);
+app.use("/api/announcements", announcementRoutes);
 
-app.use("/requests", requestRoutes);
+app.use("/api/requests", requestRoutes);
 
-app.use("/contributions", contributionRoutes);
+app.use("/api/contributions", contributionRoutes);
 
-app.use("/dashboard", dashboardRoutes);
+app.use("/api/dashboard", dashboardRoutes);
+
+app.use("/api/notifications", notificationRoutes);
 
 app.get("/", (req, res) => {
   res.json({

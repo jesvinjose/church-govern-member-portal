@@ -1,17 +1,14 @@
 import { Response } from "express";
-
-import { AuthRequest } from "../../middlewares/auth.middleware";
-
-import { MemberAuthRequest } from "../../middlewares/memberAuth.middleware";
-
-import { catchAsync } from "../../utils/catchAsync";
-
-import { sendResponse } from "../../utils/response";
-
-import { createFamilySchema, createMemberSchema } from "./family.validation";
-
-import { createFamilyService, createMemberService, getMyFamilyService } from "./family.service";
 import prisma from "../../config/prisma";
+import { AuthRequest } from "../../middlewares/auth.middleware";
+import { MemberAuthRequest } from "../../middlewares/memberAuth.middleware";
+import { catchAsync } from "../../utils/catchAsync";
+import { sendResponse } from "../../utils/response";
+import { createFamilySchema, createMemberSchema } from "./family.validation";
+import {
+  createFamilyService, createMemberService, getFamiliesService, getMyFamilyService,
+  updateMemberService,  getFamilyMembersDropdownService
+} from "./family.service";
 
 export const createFamily = catchAsync(
   async (
@@ -53,73 +50,73 @@ export const createFamily = catchAsync(
 );
 
 export const createMember = catchAsync(
-    async (
-        req: AuthRequest,
-        res: Response
-    ) => {
+  async (
+    req: AuthRequest,
+    res: Response
+  ) => {
 
-        const familyId =
-            req.params.familyId as string;
+    const familyId =
+      req.params.familyId as string;
 
-        const tenant_id =
-            req.tenant_id;
+    const tenant_id =
+      req.tenant_id;
 
-        if (!tenant_id) {
+    if (!tenant_id) {
 
-            return sendResponse(
-                res,
-                403,
-                "Tenant not found"
-            );
-
-        }
-
-        const validatedData =
-            createMemberSchema.parse(
-                req.body
-            );
-
-        // Verify family belongs to same tenant
-
-        const family =
-            await prisma.family.findFirst({
-                where: {
-                    id: familyId,
-                    tenant_id,
-                },
-            });
-
-        if (!family) {
-
-            return sendResponse(
-                res,
-                404,
-                "Family not found"
-            );
-
-        }
-
-        const member =
-            await createMemberService({
-                ...validatedData,
-
-                tenant_id,
-
-                family_id: familyId,
-
-                dob: validatedData.dob
-                    ? new Date(validatedData.dob)
-                    : undefined,
-            });
-
-        return sendResponse(
-            res,
-            201,
-            "Member created successfully",
-            member
-        );
+      return sendResponse(
+        res,
+        403,
+        "Tenant not found"
+      );
 
     }
+
+    const validatedData =
+      createMemberSchema.parse(
+        req.body
+      );
+
+    // Verify family belongs to same tenant
+
+    const family =
+      await prisma.family.findFirst({
+        where: {
+          id: familyId,
+          tenant_id,
+        },
+      });
+
+    if (!family) {
+
+      return sendResponse(
+        res,
+        404,
+        "Family not found"
+      );
+
+    }
+
+    const member =
+      await createMemberService({
+        ...validatedData,
+
+        tenant_id,
+
+        family_id: familyId,
+
+        dob: validatedData.dob
+          ? new Date(validatedData.dob)
+          : undefined,
+      });
+
+    return sendResponse(
+      res,
+      201,
+      "Member created successfully",
+      member
+    );
+
+  }
 );
 
 export const getMyFamily =
@@ -140,6 +137,131 @@ export const getMyFamily =
         200,
         "Family fetched successfully",
         family
+      );
+
+    }
+  );
+
+export const getFamilies =
+  catchAsync(
+    async (
+      req: AuthRequest,
+      res: Response
+    ) => {
+
+      if (!req.tenant_id) {
+
+        return sendResponse(
+          res,
+          403,
+          "Tenant not found"
+        );
+
+      }
+
+      const families =
+        await getFamiliesService(
+          req.tenant_id
+        );
+
+      return sendResponse(
+        res,
+        200,
+        "Families fetched successfully",
+        families
+      );
+
+    }
+  );
+
+export const updateMember =
+  catchAsync(
+    async (
+      req: AuthRequest,
+      res: Response
+    ) => {
+
+      const tenant_id =
+        req.tenant_id;
+
+      if (!tenant_id) {
+
+        return sendResponse(
+          res,
+          403,
+          "Tenant not found"
+        );
+
+      }
+
+      const validatedData =
+        createMemberSchema.parse(
+          req.body
+        );
+
+      const member =
+        await updateMemberService(
+
+          req.params.id as string,
+
+          tenant_id,
+
+          {
+
+            ...validatedData,
+
+            dob:
+              validatedData.dob
+                ? new Date(
+                  validatedData.dob
+                )
+                : undefined,
+
+          }
+
+        );
+
+      return sendResponse(
+        res,
+        200,
+        "Member updated successfully",
+        member
+      );
+
+    }
+  );
+
+export const getFamilyMembersDropdown =
+  catchAsync(
+    async (
+      req: AuthRequest,
+      res: Response
+    ) => {
+
+      if (!req.tenant_id) {
+
+        return sendResponse(
+          res,
+          403,
+          "Tenant not found"
+        );
+
+      }
+
+      const members =
+        await getFamilyMembersDropdownService(
+
+          req.params.familyId as string,
+
+          req.tenant_id
+
+        );
+
+      return sendResponse(
+        res,
+        200,
+        "Family members fetched successfully",
+        members
       );
 
     }

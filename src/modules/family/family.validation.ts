@@ -60,38 +60,39 @@ export const createFamilySchema =
 
 export const createMemberSchema = z.object({
 
-    name: z
-        .string()
-        .min(2, "Name is required"),
+  name: z
+    .string()
+    .min(2, "Name is required"),
 
-    gender: z.enum([
-        "MALE",
-        "FEMALE",
-        "OTHER",
-    ]),
+  gender: z.enum([
+    "MALE",
+    "FEMALE",
+    "OTHER",
+  ]),
 
-    dob: z
-        .string()
-        .optional(),
+  dob: z
+    .string()
+    .optional(),
 
-    phone: z
-        .string()
-        .optional(),
+  phone: z
+    .string()
+    .optional(),
 
-    email: z
-        .string()
-        .email("Valid email is required"),
+  email: z
+    .string()
+    .email("Valid email is required"),
 
-    profession: z
-        .string()
-        .optional(),
+  profession: z
+    .string()
+    .optional(),
 
-    christening_name: z
-        .string()
-        .optional(),
+  christening_name: z
+    .string()
+    .optional(),
 
-    relation: z
-        .string()
-        .optional(),
+  relation: z
+    .string()
+    .optional(),
 
 });
+

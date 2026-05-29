@@ -3,7 +3,14 @@ import { Router } from "express";
 import { authMiddleware } from "../../middlewares/auth.middleware";
 import { memberAuthMiddleware } from "../../middlewares/memberAuth.middleware";
 
-import { createFamily, createMember, getMyFamily, } from "./family.controller";
+import {
+  createFamily,
+  createMember,
+  getMyFamily,
+  getFamilies,
+  updateMember,
+  getFamilyMembersDropdown
+} from "./family.controller";
 
 const router = Router();
 
@@ -15,15 +22,33 @@ router.post(
 );
 
 router.post(
-    "/:familyId/members",
-    authMiddleware,
-    createMember
+  "/:familyId/members",
+  authMiddleware,
+  createMember
+);
+
+router.get(
+  "/",
+  authMiddleware,
+  getFamilies
+);
+
+router.patch(
+  "/members/:id",
+  authMiddleware,
+  updateMember
+);
+
+router.get(
+  "/:familyId/members/dropdown",
+  authMiddleware,
+  getFamilyMembersDropdown
 );
 
 // MEMBER ROUTES
 
 router.get(
-  "/family",
+  "/my-family",
   memberAuthMiddleware,
   getMyFamily
 );
