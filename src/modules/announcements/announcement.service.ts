@@ -75,7 +75,9 @@ export const getMemberAnnouncementsService =
         .filter((member) => member.dob)
         .map((member) => ({
 
-          type: "birthday",
+          type: "personal",
+
+          subtype: "birthday",
 
           title:
             `Happy Birthday ${member.name}`,
@@ -93,7 +95,7 @@ export const getMemberAnnouncementsService =
     const formattedAnnouncements =
       announcements.map((announcement) => ({
 
-        type: "announcement",
+        type:  announcement.category.toLowerCase(),
 
         title:
           announcement.title,
@@ -129,7 +131,7 @@ export const getMemberAnnouncementsService =
 export const announcementCount = async (
   tenantId: string
 ) => {
-  await prisma.announcement.count({
+  return await prisma.announcement.count({
     where: {
       tenant_id: tenantId
     }
@@ -139,7 +141,7 @@ export const announcementCount = async (
 export const recentAnnouncements = async (
   tenantId: string
 ) => {
-  await prisma.announcement.findMany({
+  return await prisma.announcement.findMany({
 
     where: {
       tenant_id: tenantId
