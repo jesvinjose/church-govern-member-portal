@@ -190,6 +190,7 @@ export const updateRequestStatus =
         await updateRequestStatusService(
           req.params.id as string,
           req.tenant_id,
+          req.id as string,
           status
         );
 

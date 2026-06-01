@@ -34,6 +34,11 @@ export const createNotification = async (
     );
   }
 
+  console.log(
+    "Sending notification to user_id:",
+    payload.user_id
+  );
+
   // Notify member
   if (payload.member_id) {
     io.to(`member_${payload.member_id}`).emit(
@@ -41,6 +46,11 @@ export const createNotification = async (
       notification
     );
   }
+
+  console.log(
+    "Sending notification to member_id:",
+    payload.member_id
+  );
 
   return notification;
 };

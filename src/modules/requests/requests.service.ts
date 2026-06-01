@@ -139,6 +139,7 @@ export const updateRequestStatusService =
   async (
     id: string,
     tenant_id: string,
+    user_id: string,
     status:
       | "APPROVED"
       | "REJECTED"
@@ -149,7 +150,7 @@ export const updateRequestStatusService =
 
         where: {
           id,
-          tenant_id,
+          tenant_id
         },
 
       });
@@ -176,6 +177,8 @@ export const updateRequestStatusService =
           status === "APPROVED"
             ? new Date()
             : null,
+
+        reviewed_by: user_id
 
       },
 

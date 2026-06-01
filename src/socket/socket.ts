@@ -47,7 +47,24 @@ export const initializeSocket = (server: any) => {
                     socket.join(`tenant_${tenantId}_admins`);
                 }
 
-                console.log("Socket rooms joined successfully");
+                console.log("Joining rooms:");
+
+                if (userId) {
+                    console.log(`user_${userId}`);
+                }
+
+                if (memberId) {
+                    console.log(`member_${memberId}`);
+                }
+
+                if (tenantId) {
+                    console.log(`tenant_${tenantId}`);
+                }
+
+                console.log(
+                    "Current rooms:",
+                    Array.from(socket.rooms)
+                );
             }
         );
 

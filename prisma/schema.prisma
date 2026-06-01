@@ -315,6 +315,10 @@ model Request {
 
   notes String?
 
+  reviewed_at DateTime?
+
+  reviewed_by String?
+
   created_at DateTime @default(now())
 
   updated_at DateTime @updatedAt
