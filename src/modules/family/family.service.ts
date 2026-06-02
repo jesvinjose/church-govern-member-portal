@@ -56,7 +56,11 @@ export const getMyFamilyService =
         },
 
         include: {
-          members: true,
+          members: {
+            include: {
+              relation: true,
+            },
+          },
         },
       });
 
@@ -92,7 +96,7 @@ type CreateMemberPayload = {
 
   christening_name?: string;
 
-  relation?: string;
+  relation_id?: string;
 };
 
 export const createMemberService = async (
@@ -154,7 +158,7 @@ export const updateMemberService =
       email?: string;
       profession?: string;
       christening_name?: string;
-      relation?: string;
+      relation_id?: string;
     }
   ) => {
 
@@ -209,7 +213,12 @@ export const getFamilyMembersDropdownService =
 
         gender: true,
 
-        relation: true,
+        relation: {
+          select: {
+            id: true,
+            name: true,
+          },
+        },
 
         dob: true,
 

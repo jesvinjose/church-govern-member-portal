@@ -13,86 +13,81 @@ model Tenant {
   slug          String         @unique
   email         String?
   is_active     Boolean        @default(true)
+  created_at    DateTime       @default(now())
+  notifications Notification[]
   announcements Announcement[]
-
-  created_at DateTime @default(now())
-
-  users         User[]
+  contributions Contribution[]
   families      Family[]
   members       Member[]
   requests      Request[]
-  contributions Contribution[]
-  notifications Notification[]
+  roles         Role[]
+  users         User[]
 
-  roles Role[]
+  image  String?
+  phone  String?
+  domain String?
+
+  address_line1 String?
+  address_line2 String?
+  city          String?
+  state         String?
+  country       String?
+  postal_code   String?
+
+  latitude  Float?
+  longitude Float?
+
+  diocese_id String?
+  diocese    Diocese? @relation(fields: [diocese_id], references: [id])
+
+  wards           Ward[]
+  prayer_groups   PrayerGroup[]
+  classifications Classification[]
+  relations       Relation[]
 
   @@map("tenants")
 }
 
 model User {
-  id String @id @default(uuid())
-
-  first_name String
-
-  last_name String
-
-  email String @unique
-
-  phone String?
-
-  password_hash String
-
-  tenant_id String?
-
-  tenant Tenant? @relation(fields: [tenant_id], references: [id])
-
-  is_active Boolean @default(true)
-
-  created_at DateTime @default(now())
-
-  updated_at DateTime @updatedAt
-
+  id                    String               @id @default(uuid())
+  first_name            String
+  last_name             String
+  email                 String               @unique
+  phone                 String?
+  password_hash         String
+  tenant_id             String?
+  is_active             Boolean              @default(true)
+  created_at            DateTime             @default(now())
+  updated_at            DateTime             @updatedAt
+  notifications         Notification[]
+  otp                   OTP[]
   password_reset_tokens PasswordResetToken[]
-
-  notifications Notification[]
-
-  roles UserRole[]
-
-  otp OTP[]
+  roles                 UserRole[]
+  tenant                Tenant?              @relation(fields: [tenant_id], references: [id])
 
   @@index([tenant_id])
   @@map("users")
 }
 
 model UserRole {
-  id String @id @default(uuid())
-
+  id      String @id @default(uuid())
   user_id String
-
   role_id String
-
-  user User @relation(fields: [user_id], references: [id])
-
-  role Role @relation(fields: [role_id], references: [id])
+  role    Role   @relation(fields: [role_id], references: [id])
+  user    User   @relation(fields: [user_id], references: [id])
 
   @@unique([user_id, role_id])
   @@map("user_roles")
 }
 
 model Role {
-  id String @id @default(uuid())
-
-  name String
-
+  id          String     @id @default(uuid())
+  name        String
   description String?
-
-  tenant_id String?
-
-  tenant Tenant? @relation(fields: [tenant_id], references: [id])
-
-  users UserRole[]
-
-  created_at DateTime @default(now())
+  tenant_id   String?
+  created_at  DateTime   @default(now())
+  tenant      Tenant?    @relation(fields: [tenant_id], references: [id])
+  users       UserRole[]
 
   @@unique([tenant_id, name])
   @@index([tenant_id])
@@ -100,110 +95,203 @@ model Role {
 }
 
 model PasswordResetToken {
-  id String @id @default(uuid())
-
-  user_id String
-
-  token String @unique
-
+  id        String   @id @default(uuid())
+  user_id   String
+  token     String   @unique
   expiresAt DateTime
-
-  used Boolean @default(false)
-
-  user User @relation(fields: [user_id], references: [id])
+  used      Boolean  @default(false)
+  user      User     @relation(fields: [user_id], references: [id])
 
   @@map("password_reset_tokens")
 }
 
 model Family {
-  id String @id @default(uuid())
-
-  tenant_id String
-
-  tenant Tenant @relation(fields: [tenant_id], references: [id])
-
-  serial_no String
-
-  head_name String
-
-  name String
-
-  house_name String?
-
-  phone String?
-
+  id            String         @id @default(uuid())
+  tenant_id     String
+  serial_no     String
+  head_name     String
+  name          String
+  house_name    String?
+  phone         String?
   address_line1 String?
-
   address_line2 String?
-
-  city String?
-
-  state String?
-
-  postal_code String?
-
-  notes String?
-
-  requests Request[]
-
-  is_active Boolean @default(true)
-
+  city          String?
+  state         String?
+  postal_code   String?
+  notes         String?
+  is_active     Boolean        @default(true)
+  created_at    DateTime       @default(now())
+  updated_at    DateTime       @updatedAt
   contributions Contribution[]
+  tenant        Tenant         @relation(fields: [tenant_id], references: [id])
+  members       Member[]
+  requests      Request[]
 
-  created_at DateTime @default(now())
+  ward_id           String?
+  prayer_group_id   String?
+  classification_id String?
 
-  updated_at DateTime @updatedAt
+  ward Ward? @relation(fields: [ward_id], references: [id])
 
-  members Member[]
+  prayerGroup PrayerGroup? @relation(fields: [prayer_group_id], references: [id])
+
+  classification Classification? @relation(fields: [classification_id], references: [id])
 
   @@index([tenant_id])
+  @@index([ward_id])
+  @@index([prayer_group_id])
+  @@index([classification_id])
   @@map("familys")
 }
 
 model Member {
-  id String @id @default(uuid())
-
-  tenant_id String
-
-  tenant Tenant @relation(fields: [tenant_id], references: [id])
-
-  family_id String
-
-  family Family @relation(fields: [family_id], references: [id])
-
-  name String
-
-  gender Gender
-
-  dob DateTime?
-
-  phone String?
-
-  email String @unique
-
-  profession String?
-
+  id               String         @id @default(uuid())
+  tenant_id        String
+  family_id        String
+  name             String
+  gender           Gender
+  dob              DateTime?
+  phone            String?
+  profession       String?
   christening_name String?
+  relation_name    String?
+  is_active        Boolean        @default(true)
+  created_at       DateTime       @default(now())
+  updated_at       DateTime       @updatedAt
+  email            String         @unique
+  notifications    Notification[]
+  contributions    Contribution[]
+  member_otps      MemberOTP[]
+  family           Family         @relation(fields: [family_id], references: [id])
+  tenant           Tenant         @relation(fields: [tenant_id], references: [id])
+  requests         Request[]
 
-  relation String?
+  relation_id String?
+  relation    Relation? @relation(fields: [relation_id], references: [id])
 
-  is_active Boolean @default(true)
+  ward_id String?
+  ward    Ward?   @relation(fields: [ward_id], references: [id])
 
-  member_otps MemberOTP[]
-
-  requests Request[]
-
-  contributions Contribution[]
-
-  notifications Notification[]
-
-  created_at DateTime @default(now())
-
-  updated_at DateTime @updatedAt
+  prayer_group_id String?
+  prayerGroup     PrayerGroup? @relation(fields: [prayer_group_id], references: [id])
 
   @@index([tenant_id])
   @@index([family_id])
+  @@index([relation_id])
+  @@index([ward_id])
+  @@index([prayer_group_id])
   @@map("members")
+}
+
+model OTP {
+  id         String     @id @default(uuid())
+  code       String
+  purpose    OTPPurpose
+  expires_at DateTime
+  verified   Boolean    @default(false)
+  user_id    String
+  user       User       @relation(fields: [user_id], references: [id])
+
+  @@map("otp")
+}
+
+model MemberOTP {
+  id         String           @id @default(uuid())
+  code       String
+  expires_at DateTime
+  verified   Boolean          @default(false)
+  member_id  String
+  created_at DateTime         @default(now())
+  purpose    MemberOTPPurpose
+  member     Member           @relation(fields: [member_id], references: [id])
+
+  @@map("member_otp")
+}
+
+model Announcement {
+  id           String               @id @default(uuid())
+  tenant_id    String
+  title        String
+  content      String
+  category     AnnouncementCategory
+  is_important Boolean              @default(false)
+  is_active    Boolean              @default(true)
+  created_by   String?
+  created_at   DateTime             @default(now())
+  updated_at   DateTime             @updatedAt
+  tenant       Tenant               @relation(fields: [tenant_id], references: [id])
+
+  @@index([tenant_id])
+  @@map("announcements")
+}
+
+model Request {
+  id          String        @id @default(uuid())
+  tenant_id   String
+  member_id   String
+  family_id   String
+  type        RequestType
+  status      RequestStatus @default(PENDING)
+  payload     Json
+  notes       String?
+  created_at  DateTime      @default(now())
+  updated_at  DateTime      @updatedAt
+  reviewed_at DateTime?
+  reviewed_by String?
+  family      Family        @relation(fields: [family_id], references: [id])
+  member      Member        @relation(fields: [member_id], references: [id])
+  tenant      Tenant        @relation(fields: [tenant_id], references: [id])
+
+  @@index([tenant_id])
+  @@index([member_id])
+  @@map("requests")
+}
+
+model Contribution {
+  id             String              @id @default(uuid())
+  tenant_id      String
+  member_id      String
+  family_id      String
+  receipt_no     String?             @unique
+  type           ContributionType
+  amount         Decimal             @db.Decimal(10, 2)
+  purpose        String
+  payment_method PaymentMethod
+  privacy        ContributionPrivacy
+  status         ContributionStatus  @default(PENDING)
+  notes          String?
+  verified_at    DateTime?
+  created_at     DateTime            @default(now())
+  updated_at     DateTime            @updatedAt
+  family         Family              @relation(fields: [family_id], references: [id])
+  member         Member              @relation(fields: [member_id], references: [id])
+  tenant         Tenant              @relation(fields: [tenant_id], references: [id])
+
+  @@index([tenant_id])
+  @@index([member_id])
+  @@index([family_id])
+  @@index([status])
+  @@map("contributions")
+}
+
+model Notification {
+  id         String           @id @default(uuid())
+  tenant_id  String
+  user_id    String?
+  member_id  String?
+  title      String
+  message    String
+  type       NotificationType
+  is_read    Boolean          @default(false)
+  metadata   Json?
+  created_at DateTime         @default(now())
+  member     Member?          @relation(fields: [member_id], references: [id])
+  tenant     Tenant           @relation(fields: [tenant_id], references: [id])
+  user       User?            @relation(fields: [user_id], references: [id])
+
+  @@index([tenant_id])
+  @@index([user_id])
+  @@index([member_id])
 }
 
 enum Gender {
@@ -219,75 +307,10 @@ enum OTPPurpose {
   VERIFY_EMAIL
 }
 
-model OTP {
-  id String @id @default(uuid())
-
-  code String
-
-  purpose OTPPurpose
-
-  expires_at DateTime
-
-  verified Boolean @default(false)
-
-  user_id String
-
-  user User @relation(fields: [user_id], references: [id])
-
-  @@map("otp")
-}
-
-model MemberOTP {
-  id String @id @default(uuid())
-
-  code String
-
-  purpose MemberOTPPurpose
-
-  expires_at DateTime
-
-  verified Boolean @default(false)
-
-  member_id String
-
-  member Member @relation(fields: [member_id], references: [id])
-
-  created_at DateTime @default(now())
-
-  @@map("member_otp")
-}
-
 enum MemberOTPPurpose {
   LOGIN
   VERIFY_PHONE
   VERIFY_EMAIL
-}
-
-model Announcement {
-  id String @id @default(uuid())
-
-  tenant_id String
-
-  tenant Tenant @relation(fields: [tenant_id], references: [id])
-
-  title String
-
-  content String
-
-  category AnnouncementCategory
-
-  is_important Boolean @default(false)
-
-  is_active Boolean @default(true)
-
-  created_by String?
-
-  created_at DateTime @default(now())
-
-  updated_at DateTime @updatedAt
-
-  @@index([tenant_id])
-  @@map("announcements")
 }
 
 enum AnnouncementCategory {
@@ -296,42 +319,6 @@ enum AnnouncementCategory {
   PRAYER
   SERVICE
   PERSONAL
-}
-
-model Request {
-  id String @id @default(uuid())
-
-  tenant_id String
-
-  member_id String
-
-  family_id String
-
-  type RequestType
-
-  status RequestStatus @default(PENDING)
-
-  payload Json
-
-  notes String?
-
-  reviewed_at DateTime?
-
-  reviewed_by String?
-
-  created_at DateTime @default(now())
-
-  updated_at DateTime @updatedAt
-
-  tenant Tenant @relation(fields: [tenant_id], references: [id])
-
-  member Member @relation(fields: [member_id], references: [id])
-
-  family Family @relation(fields: [family_id], references: [id])
-
-  @@index([tenant_id])
-  @@index([member_id])
-  @@map("requests")
 }
 
 enum RequestType {
@@ -346,50 +333,6 @@ enum RequestStatus {
   APPROVED
   REJECTED
   COMPLETED
-}
-
-model Contribution {
-  id String @id @default(uuid())
-
-  tenant_id String
-
-  member_id String
-
-  family_id String
-
-  receipt_no String? @unique
-
-  type ContributionType
-
-  amount Decimal @db.Decimal(10, 2)
-
-  purpose String
-
-  payment_method PaymentMethod
-
-  privacy ContributionPrivacy
-
-  status ContributionStatus @default(PENDING)
-
-  notes String?
-
-  verified_at DateTime?
-
-  created_at DateTime @default(now())
-
-  updated_at DateTime @updatedAt
-
-  tenant Tenant @relation(fields: [tenant_id], references: [id])
-
-  member Member @relation(fields: [member_id], references: [id])
-
-  family Family @relation(fields: [family_id], references: [id])
-
-  @@index([tenant_id])
-  @@index([member_id])
-  @@index([family_id])
-  @@index([status])
-  @@map("contributions")
 }
 
 enum ContributionType {
@@ -416,38 +359,142 @@ enum ContributionStatus {
   REJECTED
 }
 
-model Notification {
-  id String @id @default(uuid())
-
-  tenant_id String
-
-  user_id   String?
-  member_id String?
-
-  title   String
-  message String
-
-  type NotificationType
-
-  is_read Boolean @default(false)
-
-  metadata Json?
-
-  created_at DateTime @default(now())
-
-  tenant Tenant @relation(fields: [tenant_id], references: [id])
-
-  user   User?   @relation(fields: [user_id], references: [id])
-  member Member? @relation(fields: [member_id], references: [id])
-
-  @@index([tenant_id])
-  @@index([user_id])
-  @@index([member_id])
-}
-
 enum NotificationType {
   REQUEST
   CONTRIBUTION
   ANNOUNCEMENT
   SYSTEM
+}
+
+model Diocese {
+  id          String  @id @default(uuid())
+  name        String
+  description String?
+  is_active   Boolean @default(true)
+
+  created_by String?
+  created_at DateTime  @default(now())
+  status     String?
+  updated_by String?
+  updated_at DateTime?
+  deleted_by String?
+  deleted_at DateTime?
+  is_deleted Boolean   @default(false)
+
+  tenants Tenant[]
+
+  @@map("diocese")
+}
+
+model Ward {
+  id          String  @id @default(uuid())
+  name        String
+  tenant_id   String?
+  icon        String?
+  description String?
+
+  is_active Boolean @default(true)
+
+  created_by String?
+  created_at DateTime  @default(now())
+  status     String?
+  updated_by String?
+  updated_at DateTime?
+  deleted_by String?
+  deleted_at DateTime?
+  is_deleted Boolean   @default(false)
+
+  tenant Tenant? @relation(fields: [tenant_id], references: [id])
+
+  families Family[]
+  members  Member[]
+
+  prayerGroups PrayerGroup[]
+
+  @@index([tenant_id])
+  @@map("wards")
+}
+
+model PrayerGroup {
+  id          String  @id @default(uuid())
+  name        String
+  tenant_id   String?
+  ward_id     String?
+  icon        String?
+  description String?
+
+  is_active Boolean @default(true)
+
+  created_by String?
+  created_at DateTime  @default(now())
+  status     String?
+  updated_by String?
+  updated_at DateTime?
+  deleted_by String?
+  deleted_at DateTime?
+  is_deleted Boolean   @default(false)
+
+  tenant Tenant? @relation(fields: [tenant_id], references: [id])
+
+  ward Ward? @relation(fields: [ward_id], references: [id])
+
+  families Family[]
+  members  Member[]
+
+  @@index([tenant_id])
+  @@index([ward_id])
+  @@map("prayer_groups")
+}
+
+model Classification {
+  id          String  @id @default(uuid())
+  name        String
+  tenant_id   String?
+  icon        String?
+  description String?
+
+  is_active Boolean @default(true)
+
+  created_by String?
+  created_at DateTime  @default(now())
+  status     String?
+  updated_by String?
+  updated_at DateTime?
+  deleted_by String?
+  deleted_at DateTime?
+  is_deleted Boolean   @default(false)
+
+  tenant Tenant? @relation(fields: [tenant_id], references: [id])
+
+  families Family[]
+
+  @@index([tenant_id])
+  @@map("classifications")
+}
+
+model Relation {
+  id          String  @id @default(uuid())
+  name        String
+  tenant_id   String?
+  icon        String?
+  description String?
+  order       Int     @default(0)
+
+  is_active Boolean @default(true)
+
+  created_by String?
+  created_at DateTime  @default(now())
+  status     String?
+  updated_by String?
+  updated_at DateTime?
+  deleted_by String?
+  deleted_at DateTime?
+  is_deleted Boolean   @default(false)
+
+  tenant Tenant? @relation(fields: [tenant_id], references: [id])
+
+  members Member[]
+
+  @@index([tenant_id])
+  @@map("relation")
 }
