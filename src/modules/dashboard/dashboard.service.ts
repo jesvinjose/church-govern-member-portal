@@ -2,7 +2,7 @@ import prisma from "../../config/prisma";
 import {
     announcementCount,
     recentAnnouncements
-} from "../announcements/announcement.service";
+} from "../broadcast/broadcast.service";
 
 import {
     getContributionSummaryService

@@ -5,11 +5,14 @@ export const createAnnouncementSchema =
 
         title: z
             .string()
-            .min(3, "Title is required"),
+            .trim()
+            .min(3, "Title must be at least 3 characters")
+            .max(255, "Title is too long"),
 
         content: z
             .string()
-            .min(5, "Content is required"),
+            .trim()
+            .min(5, "Content must be at least 5 characters"),
 
         category: z.enum([
             "GENERAL",
@@ -21,6 +24,7 @@ export const createAnnouncementSchema =
 
         is_important: z
             .boolean()
-            .optional(),
+            .optional()
+            .default(false),
 
     });

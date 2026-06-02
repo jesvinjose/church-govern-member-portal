@@ -9,7 +9,7 @@ import {
     getMemberProfile
 } from "./member-auth.controller";
 
-import { getMemberAnnouncements } from "../announcements/announcement.controller";
+import { getMemberAnnouncements } from "../broadcast/broadcast.controller";
 
 const router = Router();
 

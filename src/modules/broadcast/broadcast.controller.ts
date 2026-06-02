@@ -13,12 +13,12 @@ import { AuthRequest }
 
 import {
   createAnnouncementSchema
-} from "./announcement.validation";
+} from "./broadcast.validation";
 
 import {
-  createAnnouncementService,
-  getMemberAnnouncementsService
-} from "./announcement.service";
+  createAnnouncementBroadcastService,
+  getAnnouncementBroadcastsService
+} from "./broadcast.service";
 import { MemberAuthRequest } from "../../middlewares/memberAuth.middleware";
 
 export const createAnnouncement =
@@ -44,12 +44,14 @@ export const createAnnouncement =
         );
 
       const announcement =
-        await createAnnouncementService({
+        await createAnnouncementBroadcastService({
 
           ...validatedData,
 
           tenant_id:
             req.tenant_id,
+            
+          created_by: req.id
 
         });
 
@@ -71,7 +73,7 @@ export const getMemberAnnouncements =
     ) => {
 
       const announcements =
-        await getMemberAnnouncementsService(
+        await getAnnouncementBroadcastsService(
           req.tenant_id as string
         );
 

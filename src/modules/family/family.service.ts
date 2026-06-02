@@ -180,13 +180,32 @@ export const updateMemberService =
 
     }
 
+    let relation_name: string | undefined;
+
+    if (payload.relation_id) {
+      const relation = await prisma.relation.findUnique({
+        where: {
+          id: payload.relation_id,
+        },
+      });
+
+      if (!relation) {
+        throw new Error("Invalid relation");
+      }
+
+      relation_name = relation.name;
+    }
+
     return prisma.member.update({
 
       where: {
         id: memberId,
       },
 
-      data: payload,
+      data: {
+        ...payload,
+        ...(relation_name && { relation_name }),
+      },
 
     });
 

@@ -1,52 +1,51 @@
 import prisma from "../../config/prisma";
+import {
+  BroadcastType,
+  AnnouncementCategory,
+} from "@prisma/client";
 
 type CreateAnnouncementPayload = {
-
   tenant_id: string;
-
   title: string;
-
   content: string;
-
-  category:
-  | "GENERAL"
-  | "EVENT"
-  | "PRAYER"
-  | "SERVICE"
-  | "PERSONAL";
-
+  category: AnnouncementCategory;
   is_important?: boolean;
-
+  created_by?: string;
 };
 
-export const createAnnouncementService =
+export const createAnnouncementBroadcastService =
   async (
     payload: CreateAnnouncementPayload
   ) => {
 
-    const announcement =
-      await prisma.announcement.create({
-        data: payload,
+    const broadcast =
+      await prisma.broadcast.create({
+        data: {
+          ...payload,
+          type: BroadcastType.ANNOUNCEMENT,
+        },
       });
 
-    return announcement;
+    return broadcast;
 
   };
 
-export const getMemberAnnouncementsService =
+export const getAnnouncementBroadcastsService =
   async (
     tenantId: string
   ) => {
 
     // DATABASE ANNOUNCEMENTS
 
-    const announcements =
-      await prisma.announcement.findMany({
+    const broadcasts =
+      await prisma.broadcast.findMany({
 
         where: {
           tenant_id: tenantId,
 
-          is_active: true,
+          type: BroadcastType.ANNOUNCEMENT,
+
+          is_deleted: false,
         },
 
         orderBy: {
@@ -93,24 +92,24 @@ export const getMemberAnnouncementsService =
     // FORMAT ANNOUNCEMENTS
 
     const formattedAnnouncements =
-      announcements.map((announcement) => ({
+      broadcasts.map((broadcast) => ({
 
-        type:  announcement.category.toLowerCase(),
+        type: broadcast.category?.toLowerCase() ?? "general",
 
         title:
-          announcement.title,
+          broadcast.title,
 
         content:
-          announcement.content,
+          broadcast.content,
 
         category:
-          announcement.category,
+          broadcast.category,
 
         created_at:
-          announcement.created_at,
+          broadcast.created_at,
 
         is_important:
-          announcement.is_important,
+          broadcast.is_important,
 
       }));
 
@@ -131,9 +130,11 @@ export const getMemberAnnouncementsService =
 export const announcementCount = async (
   tenantId: string
 ) => {
-  return await prisma.announcement.count({
+  return await prisma.broadcast.count({
     where: {
-      tenant_id: tenantId
+      tenant_id: tenantId,
+      type: BroadcastType.ANNOUNCEMENT,
+      is_deleted: false,
     }
   })
 };
@@ -141,10 +142,12 @@ export const announcementCount = async (
 export const recentAnnouncements = async (
   tenantId: string
 ) => {
-  return await prisma.announcement.findMany({
+  return await prisma.broadcast.findMany({
 
     where: {
-      tenant_id: tenantId
+      tenant_id: tenantId,
+      type: BroadcastType.ANNOUNCEMENT,
+      is_deleted: false,
     },
 
     orderBy: {

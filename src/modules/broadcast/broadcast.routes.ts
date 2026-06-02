@@ -4,7 +4,7 @@ import { Router }
 import {
     createAnnouncement,
     getMemberAnnouncements
-} from "./announcement.controller";
+} from "./broadcast.controller";
 
 import {
     authMiddleware

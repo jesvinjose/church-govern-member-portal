@@ -6,7 +6,7 @@ import cookieParser from "cookie-parser";
 import authRoutes from "./modules/auth/auth.routes";
 import familyRoutes from "./modules/family/family.routes";
 import memberAuthRoutes from "./modules/member-auth/member-auth.routes";
-import announcementRoutes from "./modules/announcements/announcement.routes";
+import broadcastRoutes from "./modules/broadcast/broadcast.routes";
 import requestRoutes from "./modules/requests/requests.routes";
 import contributionRoutes from "./modules/contributions/contributions.routes";
 import dashboardRoutes from "./modules/dashboard/dashboard.routes";
@@ -31,7 +31,7 @@ app.use("/api/member-auth", memberAuthRoutes);
 
 app.use("/api/family", familyRoutes);
 
-app.use("/api/announcements", announcementRoutes);
+app.use("/api/broadcast", broadcastRoutes);
 
 app.use("/api/requests", requestRoutes);
 
