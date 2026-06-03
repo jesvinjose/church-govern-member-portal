@@ -65,6 +65,7 @@ export const loginUser = catchAsync(
       email: user.email,
       roles: user.roles.map((r) => r.role.name),
       tenant_id: user.tenant_id,
+      token_type: "user",
     });
 
     return sendResponse(
@@ -188,6 +189,7 @@ export const loginWithOtp = catchAsync(
         email: user.email,
         roles: user.roles.map((r) => r.role.name),
         tenant_id: user.tenant_id,
+        token_type: "user",
       }
     );
 

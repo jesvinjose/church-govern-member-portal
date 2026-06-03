@@ -53,6 +53,7 @@ export const memberLogin =
                     member_id: member.id,
                     family_id: member.family_id,
                     tenant_id: member.tenant_id,
+                    "token_type": "member"
                 });
 
             return sendResponse(

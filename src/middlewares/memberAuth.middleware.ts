@@ -59,10 +59,21 @@ export const memberAuthMiddleware = (
         token,
         process.env.JWT_SECRET as string
       ) as {
-        member_id: string;
-        family_id: string;
+        member_id?: string;
+        family_id?: string;
         tenant_id?: string;
+        token_type?: string;
       };
+
+    if (decoded.token_type !== "member" ||
+      !decoded.member_id ||
+      !decoded.family_id) {
+      return sendResponse(
+        res,
+        401,
+        "Invalid member token"
+      );
+    }
 
     req.member_id =
       decoded.member_id;
@@ -72,7 +83,7 @@ export const memberAuthMiddleware = (
 
     req.tenant_id =
       decoded.tenant_id;
-
+      
     next();
 
   } catch (error) {

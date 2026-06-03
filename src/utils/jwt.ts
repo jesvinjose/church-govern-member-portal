@@ -5,6 +5,7 @@ export const generateToken = (payload: {
   email: string;
   roles: string[];
   tenant_id?: string | null;
+  token_type: string,
 }) => {
   const jwtExpire =
     process.env.JWT_EXPIRE || "7d";

@@ -5,6 +5,7 @@ export const generateMemberToken = (
         member_id: string;
         family_id: string;
         tenant_id?: string | null;
+        token_type:string;
     }
 ) => {
 

@@ -46,6 +46,8 @@ export const getAnnouncementBroadcastsService =
           type: BroadcastType.ANNOUNCEMENT,
 
           is_deleted: false,
+
+          status: "PUBLISHED"
         },
 
         orderBy: {

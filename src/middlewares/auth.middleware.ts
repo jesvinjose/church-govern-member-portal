@@ -42,17 +42,30 @@ export const authMiddleware = (
             token,
             process.env.JWT_SECRET as string
         ) as {
-            id: string;
-            email: string;
+            id?: string;
+            email?: string;
             roles: string[],
             tenant_id?: string | null;
-        };      
+            token_type?: string;
+        };
+
+        if (
+            decoded.token_type !== "user" ||
+            !decoded.id ||
+            !decoded.email
+        ) {
+            return sendResponse(
+                res,
+                401,
+                "Invalid user token"
+            );
+        }
 
         req.id = decoded.id;
 
         req.email = decoded.email;
 
-        req.roles = decoded.roles;
+        req.roles = decoded.roles ?? [];
 
         req.tenant_id =
             decoded.tenant_id;
