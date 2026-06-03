@@ -66,6 +66,15 @@ export const loginUserService = async (
         throw new Error("Invalid email or password");
     }
 
+    //     if (user.is_deleted) {
+    //    throw new Error("Invalid email or password");
+    // }
+
+    // Check account status
+    if (!user.is_active) {
+        throw new Error("Account is inactive");
+    }
+
     const isPasswordMatched = await bcrypt.compare(
         password,
         user.password_hash
@@ -109,9 +118,21 @@ export const forgotPasswordService = async (
         },
     });
 
-    if (!user) {
-        throw new Error("User not found");
+    // Prevent email enumeration
+    if (!user || !user.is_active) {
+        return;
     }
+
+    // Invalidate previous unused tokens
+    await prisma.passwordResetToken.updateMany({
+        where: {
+            user_id: user.id,
+            used: false,
+        },
+        data: {
+            used: true,
+        },
+    });
 
     const resetToken = uuidv4();
 
@@ -180,6 +201,20 @@ export const resetPasswordService = async (
         throw new Error("Reset token expired");
     }
 
+    const user = await prisma.user.findUnique({
+        where: {
+            id: resetRecord.user_id,
+        },
+    });
+
+    if (!user) {
+        throw new Error("User not found");
+    }
+
+    if (!user.is_active) {
+        throw new Error("Account is inactive");
+    }
+
     const hashedPassword =
         await bcrypt.hash(password, 10);
 
@@ -236,6 +271,22 @@ export const sendOtpService = async (
     if (!user) {
         throw new Error("User not found");
     }
+
+    if (!user.is_active) {
+        throw new Error("Account is inactive");
+    }
+
+    // Invalidate old OTPs
+    await prisma.oTP.updateMany({
+        where: {
+            user_id: user.id,
+            purpose: payload.purpose,
+            verified: false,
+        },
+        data: {
+            verified: true,
+        },
+    });
 
     const otpCode = generateOtp();
 
@@ -294,6 +345,10 @@ export const loginWithOtpService = async (
 
     if (!user) {
         throw new Error("User not found");
+    }
+
+    if (!user.is_active) {
+        throw new Error("Account is inactive");
     }
 
     const otpRecord =

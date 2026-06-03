@@ -117,7 +117,7 @@ export const forgotPassword = catchAsync(
     return sendResponse(
       res,
       200,
-      "Password reset link sent successfully"
+      "If an account exists, a password reset link has been sent successfully"
     );
 
   }

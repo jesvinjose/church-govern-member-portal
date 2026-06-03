@@ -13,6 +13,7 @@ model Tenant {
   slug            String           @unique
   email           String?
   is_active       Boolean          @default(true)
+  status          TenantStatus     @default(ACTIVE)
   created_at      DateTime         @default(now())
   address_line1   String?
   address_line2   String?
@@ -39,8 +40,21 @@ model Tenant {
   users           User[]
   wards           Ward[]
   broadcasts      Broadcast[]
+  no_graves       Int?
+  created_by      String?
+  updated_by      String?
+  updated_at      DateTime?
+  deleted_by      String?
+  deleted_at      DateTime?
+  is_deleted      Boolean          @default(false)
 
   @@map("tenants")
+}
+
+enum TenantStatus {
+  ACTIVE
+  INACTIVE
+  SUSPENDED
 }
 
 model User {
@@ -53,12 +67,22 @@ model User {
   tenant_id             String?
   is_active             Boolean              @default(true)
   created_at            DateTime             @default(now())
-  updated_at            DateTime             @updatedAt
+  updated_at            DateTime?
   notifications         Notification[]
-  otp                   OTP[]
+  otps                  OTP[]
   password_reset_tokens PasswordResetToken[]
   roles                 UserRole[]
   tenant                Tenant?              @relation(fields: [tenant_id], references: [id])
+
+  mfa_enable  Boolean   @default(false)
+  lastLoginAt DateTime?
+
+  created_by String?
+  updated_by String?
+
+  deleted_by String?
+  deleted_at DateTime?
+  is_deleted Boolean   @default(false)
 
   @@index([tenant_id])
   @@map("users")
@@ -76,15 +100,24 @@ model UserRole {
 }
 
 model Role {
-  id          String     @id @default(uuid())
-  name        String
+  id          String  @id @default(uuid())
+  name        String  @unique
   description String?
-  tenant_id   String?
-  created_at  DateTime   @default(now())
-  tenant      Tenant?    @relation(fields: [tenant_id], references: [id])
-  users       UserRole[]
+  permissions Json?
 
-  @@unique([tenant_id, name])
+  created_at DateTime  @default(now())
+  created_by String?
+  updated_by String?
+  updated_at DateTime?
+  deleted_by String?
+  deleted_at DateTime?
+  is_deleted Boolean   @default(false)
+
+  tenant_id String?
+  tenant    Tenant? @relation(fields: [tenant_id], references: [id])
+
+  users UserRole[]
+
   @@index([tenant_id])
   @@map("roles")
 }
@@ -102,7 +135,7 @@ model PasswordResetToken {
 
 model Family {
   id                String          @id @default(uuid())
-  tenant_id         String
+  tenant_id         String?
   serial_no         String
   head_name         String
   name              String
@@ -113,20 +146,49 @@ model Family {
   city              String?
   state             String?
   postal_code       String?
-  notes             String?
   is_active         Boolean         @default(true)
   created_at        DateTime        @default(now())
-  updated_at        DateTime        @updatedAt
+  updated_at        DateTime?
   classification_id String?
   prayer_group_id   String?
   ward_id           String?
   contributions     Contribution[]
   classification    Classification? @relation(fields: [classification_id], references: [id])
   prayerGroup       PrayerGroup?    @relation(fields: [prayer_group_id], references: [id])
-  tenant            Tenant          @relation(fields: [tenant_id], references: [id])
+  tenant            Tenant?         @relation(fields: [tenant_id], references: [id])
   ward              Ward?           @relation(fields: [ward_id], references: [id])
   members           Member[]
   requests          Request[]
+
+  type   FamilyType?
+  gender Gender?
+  dob    DateTime?
+
+  parish_family_id String?
+
+  house_image  String?
+  family_image String?
+
+  village  String?
+  taluk    String?
+  district String?
+
+  country String?
+
+  comment String?
+
+  latitude  Float?
+  longitude Float?
+
+  status String?
+
+  created_by String?
+  updated_by String?
+
+  deleted_by String?
+  deleted_at DateTime?
+
+  is_deleted Boolean @default(false)
 
   @@index([tenant_id])
   @@index([ward_id])
@@ -135,21 +197,28 @@ model Family {
   @@map("familys")
 }
 
+enum FamilyType {
+  CREATED
+  INCOMEING
+  INCOMING
+  OUTGOING
+  TRANSFERED
+  INTERNAL_SPLIT
+  EXTERNAL_SPLIT
+}
+
 model Member {
   id               String         @id @default(uuid())
-  tenant_id        String
+  tenant_id        String?
   family_id        String
-  name             String
+  name             String?
   gender           Gender
   dob              DateTime?
   phone            String?
   profession       String?
   christening_name String?
-  relation_name    String?
   is_active        Boolean        @default(true)
-  created_at       DateTime       @default(now())
-  updated_at       DateTime       @updatedAt
-  email            String         @unique
+  email            String?        @unique
   prayer_group_id  String?
   relation_id      String?
   ward_id          String?
@@ -159,9 +228,48 @@ model Member {
   family           Family         @relation(fields: [family_id], references: [id])
   prayerGroup      PrayerGroup?   @relation(fields: [prayer_group_id], references: [id])
   relation         Relation?      @relation(fields: [relation_id], references: [id])
-  tenant           Tenant         @relation(fields: [tenant_id], references: [id])
+  tenant           Tenant?        @relation(fields: [tenant_id], references: [id])
   ward             Ward?          @relation(fields: [ward_id], references: [id])
   requests         Request[]
+  is_deceased      Boolean        @default(false)
+
+  created_by String?
+  created_at DateTime @default(now())
+
+  status String?
+
+  updated_by String?
+  updated_at DateTime?
+
+  deleted_by String?
+  deleted_at DateTime?
+
+  is_deleted Boolean @default(false)
+
+  parish_name       String?
+  ward_name         String?
+  prayer_group_name String?
+
+  type        String?
+  blood_group String?
+
+  education_qualification String?
+
+  nri String?
+
+  display_register String?
+
+  available_home String?
+
+  father_name String?
+  mother_name String?
+  spouse_name String?
+
+  father_id  String?
+  mother_id  String?
+  husband_id String?
+
+  is_migration Boolean @default(false)
 
   @@index([tenant_id])
   @@index([family_id])
@@ -196,8 +304,6 @@ model MemberOTP {
   @@map("member_otp")
 }
 
-
-
 model Request {
   id          String        @id @default(uuid())
   tenant_id   String
@@ -208,7 +314,7 @@ model Request {
   payload     Json
   notes       String?
   created_at  DateTime      @default(now())
-  updated_at  DateTime      @updatedAt
+  updated_at  DateTime?
   reviewed_at DateTime?
   reviewed_by String?
   family      Family        @relation(fields: [family_id], references: [id])
@@ -304,7 +410,7 @@ model Ward {
   members      Member[]
   prayerGroups PrayerGroup[]
   tenant       Tenant?       @relation(fields: [tenant_id], references: [id])
-  broadcasts Broadcast[]
+  broadcasts   Broadcast[]
 
   @@index([tenant_id])
   @@map("wards")
@@ -469,48 +575,50 @@ enum BroadcastStatus {
 }
 
 model Broadcast {
-  id              String @id @default(uuid())
-  tenant_id       String?
+  id        String  @id @default(uuid())
+  tenant_id String?
 
-  type            BroadcastType @default(SMS)
+  type BroadcastType @default(SMS)
 
-  title           String?
-  content         String?
+  title   String?
+  content String?
 
-  category        AnnouncementCategory?
-  is_important    Boolean @default(false)
+  category     AnnouncementCategory?
+  is_important Boolean               @default(false)
+
+  date DateTime?
+  time String?
 
   ward_id         String?
   target_audience String?
 
-  scheduled_at    DateTime?
-  sent_at         DateTime?
-  delivery_at     DateTime?
+  scheduled_at DateTime?
+  sent_at      DateTime?
+  delivery_at  DateTime?
 
-  failed_reason   String?
+  failed_reason String?
 
-  is_delivery     Boolean @default(false)
-  is_immediately  Boolean @default(false)
+  is_delivery    Boolean @default(false)
+  is_immediately Boolean @default(false)
 
-  status          BroadcastStatus @default(PUBLISHED)
+  status BroadcastStatus @default(PUBLISHED)
 
-  created_by      String?
-  created_at      DateTime @default(now())
+  created_by String?
+  created_at DateTime @default(now())
 
-  updated_by      String?
-  updated_at      DateTime?
+  updated_by String?
+  updated_at DateTime?
 
-  deleted_by      String?
-  deleted_at      DateTime?
+  deleted_by String?
+  deleted_at DateTime?
 
-  is_deleted      Boolean @default(false)
+  is_deleted Boolean @default(false)
 
-  tenant          Tenant? @relation(fields: [tenant_id], references: [id])
-  ward            Ward?   @relation(fields: [ward_id], references: [id])
+  tenant Tenant? @relation(fields: [tenant_id], references: [id])
+  ward   Ward?   @relation(fields: [ward_id], references: [id])
 
   @@index([tenant_id])
   @@index([type])
   @@index([category])
-
   @@map("broadcasts")
 }
