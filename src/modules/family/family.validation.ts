@@ -80,7 +80,8 @@ export const createMemberSchema = z.object({
 
   email: z
     .string()
-    .email("Valid email is required"),
+    .email("Invalid email")
+    .optional(),
 
   profession: z
     .string()
@@ -90,9 +91,14 @@ export const createMemberSchema = z.object({
     .string()
     .optional(),
 
-  relation: z
-    .string()
-    .optional(),
+  relation_id: z.string().uuid().optional(),
 
-});
+}).refine(
+  (data) => data.email || data.phone,
+  {
+    message:
+      "Either email or phone is required",
+    path: ["email"],
+  }
+);
 

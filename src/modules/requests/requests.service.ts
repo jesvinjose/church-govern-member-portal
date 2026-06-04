@@ -32,7 +32,13 @@ export const createRequestService =
       await prisma.request.create({
         data: payload,
         include: {
-          member: true,
+          member: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
         },
       });
 

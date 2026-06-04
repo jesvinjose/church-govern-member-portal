@@ -1,32 +1,52 @@
-import bcrypt from 'bcrypt'
-import { PrismaClient } from '@prisma/client'
+import bcrypt from "bcrypt";
+import { PrismaClient } from "@prisma/client";
 
-const prisma = new PrismaClient()
+const prisma = new PrismaClient();
 
-async function main() {
-  const tenantId = '1926650e-1792-4426-a095-50b8b0bd68bd'
+export async function createAdmin() {
+  const tenant = await prisma.tenant.findFirst({
+    where: {
+      slug: "st-joseph"
+    }
+  });
+
+  if (!tenant) {
+    throw new Error("Tenant not found");
+  }
 
   const role = await prisma.role.findFirst({
     where: {
-      tenant_id: tenantId,
-      name: 'ADMIN'
+      name: "ADMIN"
     }
-  })
+  });
 
   if (!role) {
-    throw new Error('Role not found')
+    throw new Error("ADMIN role not found");
   }
 
-  const passwordHash = await bcrypt.hash('Admin@123', 10)
+  const existingUser = await prisma.user.findUnique({
+    where: {
+      email: "john@stjoseph.com"
+    }
+  });
+
+  if (existingUser) {
+    console.log("Admin already exists");
+    return;
+  }
+
+  const passwordHash = await bcrypt.hash("Admin@123", 10);
 
   const user = await prisma.user.create({
     data: {
-      first_name: 'John',
-      last_name: 'Mathew',
-      email: 'john@stjoseph.com',
-      phone: '9999999999',
+      first_name: "John",
+      last_name: "Mathew",
+      email: "john@stjoseph.com",
+      phone: "9999999999",
       password_hash: passwordHash,
-      tenant_id: tenantId,
+
+      // user belongs to a church
+      tenant_id: tenant.id,
 
       roles: {
         create: {
@@ -41,13 +61,8 @@ async function main() {
         }
       }
     }
-  })
+  });
 
-  console.log(user)
+  console.log("Admin created:", user.id);
+  return user;
 }
-
-main()
-  .catch(console.error)
-  .finally(async () => {
-    await prisma.$disconnect()
-  })

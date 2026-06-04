@@ -6,7 +6,6 @@ import { memberAuthMiddleware } from "../../middlewares/memberAuth.middleware";
 import {
   createFamily,
   createMember,
-  getMyFamily,
   getFamilies,
   updateMember,
   getFamilyMembersDropdown
@@ -43,14 +42,6 @@ router.get(
   "/:familyId/members/dropdown",
   authMiddleware,
   getFamilyMembersDropdown
-);
-
-// MEMBER ROUTES
-
-router.get(
-  "/my-family",
-  memberAuthMiddleware,
-  getMyFamily
 );
 
 export default router;

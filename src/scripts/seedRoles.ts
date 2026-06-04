@@ -1,35 +1,29 @@
-import { PrismaClient } from '@prisma/client'
+import { PrismaClient } from "@prisma/client";
 
-const prisma = new PrismaClient()
+const prisma = new PrismaClient();
 
-async function main() {
-  const tenantId = '1926650e-1792-4426-a095-50b8b0bd68bd'
-
+export async function seedRoles() {
   await prisma.role.createMany({
     data: [
       {
-        name: 'ADMIN',
-        description: 'Church admin',
-        tenant_id: tenantId
+        name: "SUPER_ADMIN",
+        description: "Platform admin",
+        tenant_id: null
       },
       {
-        name: 'STAFF',
-        description: 'Church staff',
-        tenant_id: tenantId
+        name: "ADMIN",
+        description: "Church admin",
+        tenant_id: null
       },
       {
-        name: 'SUPER_ADMIN',
-        description: 'Platform admin',
+        name: "STAFF",
+        description: "Church staff",
         tenant_id: null
       }
-    ]
-  })
+    ],
+    skipDuplicates: true
+  });
 
-  console.log('Roles created')
+  console.log("Roles seeded");
 }
 
-main()
-  .catch(console.error)
-  .finally(async () => {
-    await prisma.$disconnect()
-  })

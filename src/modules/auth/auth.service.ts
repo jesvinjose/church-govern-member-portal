@@ -66,9 +66,9 @@ export const loginUserService = async (
         throw new Error("Invalid email or password");
     }
 
-    //     if (user.is_deleted) {
-    //    throw new Error("Invalid email or password");
-    // }
+    if (user.is_deleted) {
+        throw new Error("Invalid email or password");
+    }
 
     // Check account status
     if (!user.is_active) {

@@ -9,7 +9,7 @@ import {
     getMemberProfile
 } from "./member-auth.controller";
 
-import { getMemberAnnouncements } from "../broadcast/broadcast.controller";
+import { getMyFamily } from "../family/family.controller";
 
 const router = Router();
 
@@ -19,6 +19,6 @@ router.post("/verify-otp", memberLogin);
 
 router.get("/profile", memberAuthMiddleware, getMemberProfile);
 
-router.get("/announcements", memberAuthMiddleware, getMemberAnnouncements);
+router.get("/my-family",  memberAuthMiddleware,  getMyFamily);
 
 export default router;

@@ -90,7 +90,7 @@ type CreateMemberPayload = {
 
   phone?: string;
 
-  email: string;
+  email?: string;
 
   profession?: string;
 

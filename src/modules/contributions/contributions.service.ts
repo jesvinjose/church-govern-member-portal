@@ -46,7 +46,13 @@ export const createContributionService =
           status: "PENDING",
         },
         include: {
-          member: true,
+          member: {
+            select: {
+              id: true,
+              name: true,
+              email: true,
+            },
+          },
         },
       });
     // Notify parish admins

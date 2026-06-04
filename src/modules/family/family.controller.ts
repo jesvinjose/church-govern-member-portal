@@ -7,7 +7,7 @@ import { sendResponse } from "../../utils/response";
 import { createFamilySchema, createMemberSchema } from "./family.validation";
 import {
   createFamilyService, createMemberService, getFamiliesService, getMyFamilyService,
-  updateMemberService,  getFamilyMembersDropdownService
+  updateMemberService, getFamilyMembersDropdownService
 } from "./family.service";
 
 export const createFamily = catchAsync(
@@ -76,6 +76,64 @@ export const createMember = catchAsync(
         req.body
       );
 
+    // Check duplicate email / phone
+
+    const duplicateConditions = [];
+
+    if (validatedData.email) {
+      duplicateConditions.push({
+        email: validatedData.email,
+      });
+    }
+
+    if (validatedData.phone) {
+      duplicateConditions.push({
+        phone: validatedData.phone,
+      });
+    }
+
+    if (duplicateConditions.length > 0) {
+
+      const existingMember =
+        await prisma.member.findFirst({
+          where: {
+            is_deleted: false,
+            OR: duplicateConditions,
+          },
+        });
+
+      if (existingMember) {
+
+        if (
+          validatedData.email &&
+          existingMember.email === validatedData.email
+        ) {
+
+          return sendResponse(
+            res,
+            409,
+            "Member with this email already exists"
+          );
+
+        }
+
+        if (
+          validatedData.phone &&
+          existingMember.phone === validatedData.phone
+        ) {
+
+          return sendResponse(
+            res,
+            409,
+            "Member with this phone already exists"
+          );
+
+        }
+
+      }
+
+    }
+
     // Verify family belongs to same tenant
 
     const family =
@@ -95,6 +153,27 @@ export const createMember = catchAsync(
       );
 
     }
+
+    // Verify relation belongs to tenant
+    if (validatedData.relation_id) {
+      const relation = await prisma.relation.findFirst({
+        where: {
+          id: validatedData.relation_id,
+          tenant_id,
+          is_deleted: false,
+        },
+      });
+
+      if (!relation) {
+        return sendResponse(
+          res,
+          404,
+          "Relation not found"
+        );
+      }
+    }
+
+
 
     const member =
       await createMemberService({
