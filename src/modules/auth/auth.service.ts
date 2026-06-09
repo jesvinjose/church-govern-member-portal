@@ -291,7 +291,7 @@ export const sendOtpService = async (
     const otpCode = generateOtp();
 
     const expiresAt = new Date(
-        Date.now() + 1000 * 60 * 5
+        Date.now() + 1000 * 60 * 2
     );
 
     await prisma.oTP.create({
@@ -314,7 +314,7 @@ export const sendOtpService = async (
         <h1>${otpCode}</h1>
 
         <p>
-          OTP expires in 5 minutes.
+          OTP expires in 2 minutes.
         </p>
       `
         );

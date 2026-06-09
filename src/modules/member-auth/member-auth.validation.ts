@@ -21,6 +21,7 @@ export const sendMemberOtpSchema =
         {
             message:
                 "Email or phone is required",
+            path: ["email"],
         }
     );
 

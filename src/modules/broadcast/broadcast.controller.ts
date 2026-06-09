@@ -74,7 +74,8 @@ export const getMemberAnnouncements =
 
       const announcements =
         await getAnnouncementBroadcastsService(
-          req.tenant_id as string
+          req.tenant_id as string,
+          req.family_id as string,
         );
 
       return sendResponse(

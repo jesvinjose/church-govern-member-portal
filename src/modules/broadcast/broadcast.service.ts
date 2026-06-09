@@ -32,7 +32,8 @@ export const createAnnouncementBroadcastService =
 
 export const getAnnouncementBroadcastsService =
   async (
-    tenantId: string
+    tenantId: string,
+    familyId: string
   ) => {
 
     // DATABASE ANNOUNCEMENTS
@@ -64,6 +65,8 @@ export const getAnnouncementBroadcastsService =
         where: {
           tenant_id: tenantId,
 
+          family_id: familyId,
+
           is_active: true,
         },
 
@@ -75,6 +78,8 @@ export const getAnnouncementBroadcastsService =
       members
         .filter((member) => member.dob)
         .map((member) => ({
+
+          id: `birthday-${member.id}`,
 
           type: "personal",
 
@@ -91,10 +96,60 @@ export const getAnnouncementBroadcastsService =
 
         }));
 
+    const anniversaryEvents =
+      members
+        .filter((member) => member.marriage_date)
+        .map((member) => ({
+
+          id: `anniversary-${member.id}`,
+
+          type: "personal",
+
+          subtype: "anniversary",
+
+          title:
+            `Happy Anniversary ${member.name}`,
+
+          content:
+            `Wishing ${member.name} many more blessed years together.`,
+
+          date:
+            member.marriage_date,
+
+        }));
+
+    const memorialEvents =
+      members
+        .filter(
+          (member) =>
+            member.is_deceased &&
+            member.death_date
+        )
+        .map((member) => ({
+
+          id: `memorial-${member.id}`,
+
+          type: "personal",
+
+          subtype: "memorial",
+
+          title:
+            `In Loving Memory of ${member.name}`,
+
+          content:
+            `Remembering ${member.name} in prayer and gratitude.`,
+
+          date:
+            member.death_date,
+
+        }));
+
     // FORMAT ANNOUNCEMENTS
 
     const formattedAnnouncements =
       broadcasts.map((broadcast) => ({
+
+        id: broadcast.id,
 
         type: broadcast.category?.toLowerCase() ?? "general",
 
@@ -122,6 +177,10 @@ export const getAnnouncementBroadcastsService =
       ...formattedAnnouncements,
 
       ...birthdayEvents,
+
+      ...anniversaryEvents,
+
+      ...memorialEvents,
 
     ];
 

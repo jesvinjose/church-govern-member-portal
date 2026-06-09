@@ -149,6 +149,7 @@ export const updateRequestStatusService =
     status:
       | "APPROVED"
       | "REJECTED"
+      | "COMPLETED"
   ) => {
 
     const request =
@@ -180,37 +181,177 @@ export const updateRequestStatusService =
         status,
 
         reviewed_at:
-          status === "APPROVED"
+          status !== "REJECTED"
             ? new Date()
             : null,
 
         reviewed_by: user_id
 
       },
-
     });
 
-    // Notify member
+    /**
+    * BUSINESS ACTIONS ON COMPLETION
+    */
+
+    if (
+      status === "COMPLETED"
+    ) {
+
+      const payload =
+        request.payload as any;
+
+      switch (
+      request.type
+      ) {
+
+        case "MARRIAGE":
+
+          const member =
+            await prisma.member.findUnique({
+
+              where: {
+                id: request.member_id,
+              },
+
+              select: {
+                name: true,
+              },
+
+            });
+
+          const spouseName =
+            member?.name === payload.groom_name
+              ? payload.bride_name
+              : payload.groom_name;
+
+          await prisma.member.update({
+
+            where: {
+              id: request.member_id,
+            },
+
+            data: {
+
+              spouse_name:
+                spouseName,
+
+              marriage_date:
+                payload.preferred_ceremony_date
+                  ? new Date(
+                    payload.preferred_ceremony_date
+                  )
+                  : null,
+
+            },
+
+          });
+
+          break;
+
+        case "DEATH_REGISTRATION":
+
+          await prisma.member.update({
+
+            where: {
+              id: request.member_id,
+            },
+
+            data: {
+
+              is_deceased: true,
+
+              death_date:
+                payload.death_date
+                  ? new Date(
+                    payload.death_date
+                  )
+                  : new Date(),
+
+            },
+
+          });
+
+          break;
+
+        case "BAPTISM":
+
+          // Future implementation
+          break;
+
+        case "CERTIFICATE":
+
+          // No member update required
+          break;
+
+        default:
+          break;
+
+      }
+
+    }
+    /**
+   * MEMBER NOTIFICATION
+   */
+
+    let title =
+      "Request Updated";
+
+    let message =
+      "Your request has been updated";
+
+    if (
+      status === "APPROVED"
+    ) {
+
+      title =
+        "Request Approved";
+
+      message =
+        "Your request has been approved";
+
+    }
+
+    if (
+      status === "REJECTED"
+    ) {
+
+      title =
+        "Request Rejected";
+
+      message =
+        "Your request has been rejected";
+
+    }
+
+    if (
+      status === "COMPLETED"
+    ) {
+
+      title =
+        "Request Completed";
+
+      message =
+        "Your request has been completed";
+
+    }
+
     await createNotification({
 
       tenant_id: request.tenant_id,
 
       member_id: request.member_id,
 
-      title:
-        status === "APPROVED"
-          ? "Request Approved"
-          : "Request Rejected",
+      title,
 
-      message:
-        status === "APPROVED"
-          ? "Your request has been approved"
-          : "Your request has been rejected",
+      message,
 
-      type: "REQUEST",
+      type:
+        "REQUEST",
 
       metadata: {
         request_id: request.id,
+        request_type: request.type,
         status,
       },
 

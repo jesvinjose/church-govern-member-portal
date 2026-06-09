@@ -10,29 +10,37 @@ export const sendMemberOtpService =
             phone?: string;
         }
     ) => {
+        if (
+            !payload.email &&
+            !payload.phone
+        ) {
+            throw new Error(
+                "Email or phone is required"
+            );
+        }
 
-        let member = null;
+        const conditions = [];
 
         if (payload.email) {
-
-            member =
-                await prisma.member.findFirst({
-                    where: {
-                        email: payload.email,
-                    },
-                });
-
+            conditions.push({
+                email: payload.email,
+            });
         }
 
         if (payload.phone) {
+            conditions.push({
+                phone: payload.phone,
+            });
+        }
 
-            member = await prisma.member.findFirst({
+        const member =
+            await prisma.member.findFirst({
                 where: {
-                    phone: payload.phone,
+                    OR: conditions,
+                    is_deleted: false,
+                    is_active: true,
                 },
             });
-
-        }
 
         if (!member) {
             throw new Error(
@@ -64,7 +72,8 @@ export const sendMemberOtpService =
         });
 
         if (
-            payload.email
+            payload.email &&
+            member.email
         ) {
 
             await sendMail(
@@ -80,6 +89,20 @@ export const sendMemberOtpService =
             5 minutes.
           </p>
         `
+            );
+
+        }
+
+        if (
+            payload.phone &&
+            member.phone
+        ) {
+
+            // TODO:
+            // Send SMS OTP here
+
+            console.log(
+                `OTP ${otpCode} sent to ${member.phone}`
             );
 
         }

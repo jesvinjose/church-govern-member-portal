@@ -222,6 +222,8 @@ model Member {
   prayer_group_id  String?
   relation_id      String?
   ward_id          String?
+  marriage_date    DateTime?
+  death_date       DateTime?
   notifications    Notification[]
   contributions    Contribution[]
   member_otps      MemberOTP[]
@@ -305,21 +307,21 @@ model MemberOTP {
 }
 
 model Request {
-  id          String        @id @default(uuid())
-  tenant_id   String
-  member_id   String
-  family_id   String
-  type        RequestType
-  status      RequestStatus @default(PENDING)
-  payload     Json
-  notes       String?
-  created_at  DateTime      @default(now())
-  updated_at  DateTime?
-  reviewed_at DateTime?
-  reviewed_by String?
-  family      Family        @relation(fields: [family_id], references: [id])
-  member      Member        @relation(fields: [member_id], references: [id])
-  tenant      Tenant        @relation(fields: [tenant_id], references: [id])
+  id                String        @id @default(uuid())
+  tenant_id         String
+  member_id         String
+  family_id         String
+  type              RequestType
+  status            RequestStatus @default(PENDING)
+  payload           Json
+  notes             String?
+  created_at        DateTime      @default(now())
+  updated_at        DateTime?
+  reviewed_at       DateTime?
+  reviewed_by       String?
+  family            Family        @relation(fields: [family_id], references: [id])
+  member            Member        @relation(fields: [member_id], references: [id])
+  tenant            Tenant        @relation(fields: [tenant_id], references: [id])
 
   @@index([tenant_id])
   @@index([member_id])
