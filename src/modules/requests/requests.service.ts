@@ -254,7 +254,7 @@ export const updateRequestStatusService =
           await prisma.member.update({
 
             where: {
-              id: request.member_id,
+              id: payload.deceased_member_id,
             },
 
             data: {
@@ -262,11 +262,13 @@ export const updateRequestStatusService =
               is_deceased: true,
 
               death_date:
-                payload.death_date
+                payload.date_of_passing
                   ? new Date(
-                    payload.death_date
+                    payload.date_of_passing
                   )
                   : new Date(),
+
+              is_active: false
 
             },
 

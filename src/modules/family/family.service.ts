@@ -232,6 +232,8 @@ export const getFamilyMembersDropdownService =
 
         gender: true,
 
+        is_deceased: true,
+
         relation: {
           select: {
             id: true,

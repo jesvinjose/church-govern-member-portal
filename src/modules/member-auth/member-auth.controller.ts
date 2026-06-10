@@ -6,6 +6,7 @@ import { memberLoginService, sendMemberOtpService } from "./member-auth.service"
 import { memberLoginSchema, sendMemberOtpSchema } from "./member-auth.validation";
 import { MemberAuthRequest } from "../../middlewares/memberAuth.middleware";
 import prisma from "../../config/prisma";
+import { getFamilyMembersDropdownService } from "../family/family.service";
 
 export const sendMemberOtp =
     catchAsync(
@@ -106,6 +107,35 @@ export const getMemberProfile =
                 200,
                 "Profile fetched successfully",
                 member
+            );
+
+        }
+    );
+
+export const getMyFamilyMembersDropdown =
+    catchAsync(
+        async (
+            req: MemberAuthRequest,
+            res: Response
+        ) => {
+
+            const members =
+                await getFamilyMembersDropdownService(
+                    req.family_id as string,
+                    req.tenant_id as string
+                );
+
+            const activeMembers =
+                members.filter(
+                    member => !member.is_deceased &&
+                        member.id !== req.member_id
+                );
+
+            return sendResponse(
+                res,
+                200,
+                "Family members fetched successfully",
+                activeMembers
             );
 
         }

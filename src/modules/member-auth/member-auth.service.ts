@@ -53,7 +53,7 @@ export const sendMemberOtpService =
         const expiresAt =
             new Date(
                 Date.now() +
-                1000 * 60 * 5
+                1000 * 60 * 2
             );
 
         await prisma.memberOTP.create({
@@ -86,7 +86,7 @@ export const sendMemberOtpService =
 
           <p>
             OTP expires in
-            5 minutes.
+            2 minutes.
           </p>
         `
             );

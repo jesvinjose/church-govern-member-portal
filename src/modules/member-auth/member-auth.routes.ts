@@ -6,7 +6,8 @@ import { memberAuthMiddleware } from "../../middlewares/memberAuth.middleware";
 import {
     sendMemberOtp,
     memberLogin,
-    getMemberProfile
+    getMemberProfile,
+    getMyFamilyMembersDropdown
 } from "./member-auth.controller";
 
 import { getMyFamily } from "../family/family.controller";
@@ -19,6 +20,12 @@ router.post("/verify-otp", memberLogin);
 
 router.get("/profile", memberAuthMiddleware, getMemberProfile);
 
-router.get("/my-family",  memberAuthMiddleware,  getMyFamily);
+router.get("/my-family", memberAuthMiddleware, getMyFamily);
+
+router.get(
+    "/family-members/dropdown",
+    memberAuthMiddleware,
+    getMyFamilyMembersDropdown
+);
 
 export default router;

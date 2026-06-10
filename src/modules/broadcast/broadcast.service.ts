@@ -67,7 +67,7 @@ export const getAnnouncementBroadcastsService =
 
           family_id: familyId,
 
-          is_active: true,
+          is_deleted: false,
         },
 
       });
@@ -76,7 +76,9 @@ export const getAnnouncementBroadcastsService =
 
     const birthdayEvents =
       members
-        .filter((member) => member.dob)
+        .filter((member) => member.is_active &&
+          !member.is_deceased &&
+          member.dob)
         .map((member) => ({
 
           id: `birthday-${member.id}`,
@@ -98,7 +100,9 @@ export const getAnnouncementBroadcastsService =
 
     const anniversaryEvents =
       members
-        .filter((member) => member.marriage_date)
+        .filter((member) => member.is_active &&
+          !member.is_deceased &&
+          member.marriage_date)
         .map((member) => ({
 
           id: `anniversary-${member.id}`,
