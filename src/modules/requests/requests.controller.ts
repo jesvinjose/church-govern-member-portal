@@ -23,6 +23,7 @@ import {
   getRequestByIdService,
   updateRequestStatusService,
 } from "./requests.service";
+import { uploadToSpaces } from "../../utils/uploadToSpaces";
 
 
 export const createRequest =
@@ -32,10 +33,33 @@ export const createRequest =
       res: Response
     ) => {
 
+      const payload =
+        JSON.parse(req.body.payload);
+
+      const files =
+        (req.files as Express.Multer.File[]) || [];
+
+      const uploadedFiles = [];
+
+      for (const file of files) {
+        const url =
+          await uploadToSpaces(file);
+
+        uploadedFiles.push({
+          file_name: file.originalname,
+          file_url: url,
+        });
+      }
+
+      payload.documents =
+        uploadedFiles;
+
       const validatedData =
-        createRequestSchema.parse(
-          req.body
-        );
+        createRequestSchema.parse({
+          type: req.body.type,
+          payload,
+          notes: req.body.notes,
+        });
 
       const request =
         await createRequestService({

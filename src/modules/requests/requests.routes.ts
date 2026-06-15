@@ -1,5 +1,6 @@
 import { Router }
   from "express";
+import { upload } from "../../middlewares/upload.middleware";
 
 import {
   createRequest,
@@ -22,6 +23,7 @@ const router = Router();
 router.post(
   "/",
   memberAuthMiddleware,
+  upload.any(),
   createRequest
 );
 
@@ -48,5 +50,7 @@ router.patch(
   authMiddleware,
   updateRequestStatus
 );
+
+router.get("/baptism/parents-dropdown", memberAuthMiddleware)
 
 export default router;

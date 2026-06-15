@@ -12,21 +12,25 @@ const server = http.createServer(app);
 initializeSocket(server);
 
 async function startServer() {
+
   try {
     await prisma.$connect();
     console.log("✅ Database connected successfully");
-
-    await transporter.verify();
-    console.log("SMTP server connected");
-
-    server.listen(PORT, () => {
-      console.log(`🚀 Server running on port ${PORT}`);
-    });
-  } catch (error) {
-    console.error("❌ Database connection failed");
-    console.error(error);
-    process.exit(1);
+  } catch (error:any) {
+    console.error("❌ Database connection failed due to:",error.message);
+    // throw error;
   }
+
+  try {
+    await transporter.verify();
+    console.log("✅ SMTP server connected");
+  } catch (error:any) {
+    console.error("❌ SMTP authentication failed due to:",error.message);
+    // throw error;
+  }
+  server.listen(PORT, () => {
+    console.log(`🚀 Server running on port ${PORT}`);
+  });
 }
 
 startServer();

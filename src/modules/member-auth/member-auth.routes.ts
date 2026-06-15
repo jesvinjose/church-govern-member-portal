@@ -28,4 +28,8 @@ router.get(
     getMyFamilyMembersDropdown
 );
 
+// router.get("/family-members",memberAuthMiddleware, )
+
+// router.get("/parish-members",memberAuthMiddleware,)
+
 export default router;

@@ -1,25 +1,22 @@
 import { z } from "zod";
 
-export const createRequestSchema =
-    z.object({
+export const createRequestSchema = z.object({
+    type: z.enum([
+        "BAPTISM",
+        "MARRIAGE",
+        "DEATH_REGISTRATION",
+        "CERTIFICATE",
+    ]),
 
-        type: z.enum([
-            "BAPTISM",
-            "MARRIAGE",
-            "DEATH_REGISTRATION",
-            "CERTIFICATE",
-        ]),
+    payload: z
+        .object({})
+        .passthrough(),
 
-        payload: z.record(
-            z.string(),
-            z.any()
-        ),
-
-        notes: z
-            .string()
-            .optional(),
-
-    });
+    notes: z
+        .string()
+        .trim()
+        .optional(),
+});
 
 export const updateRequestStatusSchema =
     z.object({
