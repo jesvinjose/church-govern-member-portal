@@ -7,7 +7,8 @@ import {
     sendMemberOtp,
     memberLogin,
     getMemberProfile,
-    getMyFamilyMembersDropdown
+    getMyFamilyMembersDropdown,
+    getAllMyFamilyMembersDropdown
 } from "./member-auth.controller";
 
 import { getMyFamily } from "../family/family.controller";
@@ -28,8 +29,6 @@ router.get(
     getMyFamilyMembersDropdown
 );
 
-// router.get("/family-members",memberAuthMiddleware, )
-
-// router.get("/parish-members",memberAuthMiddleware,)
+router.get("/family-members/all-dropdown", memberAuthMiddleware, getAllMyFamilyMembersDropdown)
 
 export default router;

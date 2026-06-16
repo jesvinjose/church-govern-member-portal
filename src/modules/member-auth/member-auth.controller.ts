@@ -140,3 +140,27 @@ export const getMyFamilyMembersDropdown =
 
         }
     );
+
+export const getAllMyFamilyMembersDropdown =
+    catchAsync(
+        async (
+            req: MemberAuthRequest,
+            res: Response
+        ) => {
+
+            const members =
+                await getFamilyMembersDropdownService(
+                    req.family_id as string,
+                    req.tenant_id as string
+                );
+
+
+            return sendResponse(
+                res,
+                200,
+                "Family members fetched successfully",
+                members
+            );
+
+        }
+    );

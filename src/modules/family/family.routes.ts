@@ -8,7 +8,8 @@ import {
   createMember,
   getFamilies,
   updateMember,
-  getFamilyMembersDropdown
+  getFamilyMembersDropdown,
+  getParishMembersDropdown
 } from "./family.controller";
 
 const router = Router();
@@ -43,5 +44,10 @@ router.get(
   authMiddleware,
   getFamilyMembersDropdown
 );
+
+
+
+
+router.get("/parish-members-dropdown", memberAuthMiddleware, getParishMembersDropdown)
 
 export default router;

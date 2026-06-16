@@ -1,3 +1,4 @@
+import { Gender } from "@prisma/client";
 import prisma from "../../config/prisma";
 
 type CreateFamilyPayload = {
@@ -252,3 +253,43 @@ export const getFamilyMembersDropdownService =
     });
 
   };
+
+export const getParishMembersDropdownService =
+  async (tenant_id: string,
+    gender?: Gender) => {
+
+    return prisma.member.findMany({
+
+      where: {
+        tenant_id,
+        is_deleted: false,
+        is_deceased: false,
+        is_active: true,
+        ...(gender && { gender }),
+      },
+
+      select: {
+        id: true,
+        name: true,
+        gender: true,
+        family: {
+          select: {
+            name: true,
+            house_name: true,
+          },
+        },
+        relation: {
+          select: {
+            name: true,
+          },
+        },
+      },
+
+      orderBy: {
+        name: "asc",
+      },
+
+    });
+
+  };
+

@@ -6,9 +6,15 @@ import { catchAsync } from "../../utils/catchAsync";
 import { sendResponse } from "../../utils/response";
 import { createFamilySchema, createMemberSchema } from "./family.validation";
 import {
-  createFamilyService, createMemberService, getFamiliesService, getMyFamilyService,
-  updateMemberService, getFamilyMembersDropdownService
+  createFamilyService, 
+  createMemberService, 
+  getFamiliesService, 
+  getMyFamilyService,
+  updateMemberService, 
+  getFamilyMembersDropdownService,
+  getParishMembersDropdownService,
 } from "./family.service";
+import { Gender } from "@prisma/client";
 
 export const createFamily = catchAsync(
   async (
@@ -340,6 +346,32 @@ export const getFamilyMembersDropdown =
         res,
         200,
         "Family members fetched successfully",
+        members
+      );
+
+    }
+  );
+
+export const getParishMembersDropdown =
+  catchAsync(
+    async (
+      req: MemberAuthRequest,
+      res: Response
+    ) => {
+
+      const gender =
+        req.query.gender as Gender | undefined;
+
+      const members =
+        await getParishMembersDropdownService(
+          req.tenant_id as string,
+          gender
+        );
+
+      return sendResponse(
+        res,
+        200,
+        "Parish members fetched successfully",
         members
       );
 
