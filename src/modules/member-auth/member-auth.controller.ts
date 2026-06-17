@@ -2,7 +2,7 @@ import { Request, Response } from "express";
 import { catchAsync } from "../../utils/catchAsync";
 import { generateMemberToken } from "../../utils/memberJwt";
 import { sendResponse } from "../../utils/response";
-import { memberLoginService, sendMemberOtpService } from "./member-auth.service";
+import { getDeathRegistrationMembersDropdownService, getMemberSpouseService, getRelationsDropdownService, memberLoginService, sendMemberOtpService } from "./member-auth.service";
 import { memberLoginSchema, sendMemberOtpSchema } from "./member-auth.validation";
 import { MemberAuthRequest } from "../../middlewares/memberAuth.middleware";
 import prisma from "../../config/prisma";
@@ -120,22 +120,17 @@ export const getMyFamilyMembersDropdown =
         ) => {
 
             const members =
-                await getFamilyMembersDropdownService(
+                await getDeathRegistrationMembersDropdownService(
                     req.family_id as string,
-                    req.tenant_id as string
-                );
-
-            const activeMembers =
-                members.filter(
-                    member => !member.is_deceased &&
-                        member.id !== req.member_id
+                    req.tenant_id as string,
+                    req.member_id as string
                 );
 
             return sendResponse(
                 res,
                 200,
                 "Family members fetched successfully",
-                activeMembers
+                members
             );
 
         }
@@ -154,7 +149,6 @@ export const getAllMyFamilyMembersDropdown =
                     req.tenant_id as string
                 );
 
-
             return sendResponse(
                 res,
                 200,
@@ -164,3 +158,47 @@ export const getAllMyFamilyMembersDropdown =
 
         }
     );
+
+export const getRelationsDropdown =
+    catchAsync(
+        async (
+            req: MemberAuthRequest,
+            res: Response
+        ) => {
+
+            const relations =
+                await getRelationsDropdownService(
+                    req.tenant_id as string
+                );
+
+            return sendResponse(
+                res,
+                200,
+                "Relations fetched successfully",
+                relations
+            );
+
+        }
+    );
+
+export const getMemberSpouse =
+  catchAsync(
+    async (
+      req: MemberAuthRequest,
+      res: Response
+    ) => {
+
+      const spouse =
+        await getMemberSpouseService(
+          req.params.memberId as string,
+          req.tenant_id as string
+        );
+
+      return sendResponse(
+        res,
+        200,
+        "Spouse fetched successfully",
+        spouse
+      );
+    }
+  );

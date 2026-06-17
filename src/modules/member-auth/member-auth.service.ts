@@ -204,3 +204,156 @@ export const memberLoginService =
 
         return member;
     };
+
+export const getRelationsDropdownService =
+    async (tenant_id: string) => {
+
+        return prisma.relation.findMany({
+            where: {
+                tenant_id,
+            },
+            select: {
+                id: true,
+                name: true,
+            },
+            orderBy: {
+                order: "asc",
+            },
+        });
+
+    };
+
+export const getDeathRegistrationMembersDropdownService =
+    async (
+        familyId: string,
+        tenant_id: string,
+        loggedInMemberId: string
+    ) => {
+
+        const members =
+            await prisma.member.findMany({
+
+                where: {
+                    family_id: familyId,
+                    tenant_id,
+                    is_deceased: false,
+
+                    id: {
+                        not: loggedInMemberId,
+                    },
+                },
+
+                select: {
+                    id: true,
+                    name: true,
+                    gender: true,
+                    is_deceased: true,
+
+                    relation: {
+                        select: {
+                            id: true,
+                            name: true,
+                        },
+                    },
+
+                    dob: true,
+                },
+
+                orderBy: {
+                    name: "asc",
+                },
+
+            });
+
+        const pendingDeathRequests =
+            await prisma.request.findMany({
+
+                where: {
+                    tenant_id,
+                    type: "DEATH_REGISTRATION",
+                    status: "PENDING",
+                },
+
+                select: {
+                    payload: true,
+                },
+
+            });
+
+        const pendingMemberIds =
+            pendingDeathRequests
+                .map(
+                    (request: any) =>
+                        request.payload?.deceasedMemberId
+                )
+                .filter(Boolean);
+
+        return members.filter(
+            (member) =>
+                !pendingMemberIds.includes(member.id)
+        );
+
+    };
+
+export const getMemberSpouseService =
+    async (
+        memberId: string,
+        tenant_id: string
+    ) => {
+
+        const member =
+            await prisma.member.findUnique({
+                where: {
+                    id: memberId,
+                },
+                select: {
+                    id: true,
+                    family_id: true,
+                    gender: true,
+                    husband_id: true,
+                },
+            });
+
+        if (!member) {
+            throw new Error("Member not found");
+        }
+
+        let spouse = null;
+
+        if (member.gender === "MALE") {
+
+            spouse =
+                await prisma.member.findFirst({
+                    where: {
+                        tenant_id,
+                        family_id: member.family_id,
+                        husband_id: member.id,
+                        is_deleted: false,
+                        is_deceased: false,
+                    },
+                    select: {
+                        id: true,
+                        name: true,
+                    },
+                });
+
+        } else {
+
+            if (member.husband_id) {
+
+                spouse =
+                    await prisma.member.findUnique({
+                        where: {
+                            id: member.husband_id,
+                        },
+                        select: {
+                            id: true,
+                            name: true,
+                        },
+                    });
+
+            }
+        }
+
+        return spouse;
+    };

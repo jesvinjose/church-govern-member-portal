@@ -272,6 +272,7 @@ export const getParishMembersDropdownService =
         id: true,
         name: true,
         gender: true,
+        family_id: true, // add this
         family: {
           select: {
             name: true,

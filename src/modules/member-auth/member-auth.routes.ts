@@ -1,5 +1,4 @@
-import { Router }
-    from "express";
+import { Router } from "express";
 
 import { memberAuthMiddleware } from "../../middlewares/memberAuth.middleware";
 
@@ -8,7 +7,9 @@ import {
     memberLogin,
     getMemberProfile,
     getMyFamilyMembersDropdown,
-    getAllMyFamilyMembersDropdown
+    getAllMyFamilyMembersDropdown,
+    getRelationsDropdown,
+    getMemberSpouse
 } from "./member-auth.controller";
 
 import { getMyFamily } from "../family/family.controller";
@@ -23,12 +24,12 @@ router.get("/profile", memberAuthMiddleware, getMemberProfile);
 
 router.get("/my-family", memberAuthMiddleware, getMyFamily);
 
-router.get(
-    "/family-members/dropdown",
-    memberAuthMiddleware,
-    getMyFamilyMembersDropdown
-);
+router.get("/family-members/dropdown", memberAuthMiddleware, getMyFamilyMembersDropdown);
 
-router.get("/family-members/all-dropdown", memberAuthMiddleware, getAllMyFamilyMembersDropdown)
+router.get("/family-members/all-dropdown", memberAuthMiddleware, getAllMyFamilyMembersDropdown);
+
+router.get("/relations/dropdown", memberAuthMiddleware, getRelationsDropdown);
+
+router.get("/members/:memberId/spouse", memberAuthMiddleware, getMemberSpouse);
 
 export default router;

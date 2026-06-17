@@ -28,6 +28,173 @@ export const createRequestService =
     payload: CreateRequestPayload
   ) => {
 
+    if (payload.type === "MARRIAGE") {
+
+      const {
+        groomMembership,
+        brideMembership,
+        groomMemberId,
+        brideMemberId,
+      } = payload.payload;
+
+      if (
+        groomMembership === "nonParish" &&
+        brideMembership === "nonParish"
+      ) {
+        throw new Error(
+          "At least one party must be a parish member"
+        );
+      }
+
+      const groomMember =
+        groomMemberId
+          ? await prisma.member.findUnique({
+            where: { id: groomMemberId },
+            select: {
+              family_id: true,
+              tenant_id: true,
+            },
+          })
+          : null;
+
+      const brideMember =
+        brideMemberId
+          ? await prisma.member.findUnique({
+            where: { id: brideMemberId },
+            select: {
+              family_id: true,
+              tenant_id: true,
+            },
+          })
+          : null;
+
+      // Tenant validation
+      const groomValid =
+        !groomMember ||
+        groomMember.tenant_id === payload.tenant_id;
+
+      const brideValid =
+        !brideMember ||
+        brideMember.tenant_id === payload.tenant_id;
+
+      if (!groomValid || !brideValid) {
+        throw new Error(
+          "Selected parish member does not belong to this parish"
+        );
+      }
+
+      // Same person validation
+      if (
+        groomMemberId &&
+        brideMemberId &&
+        groomMemberId === brideMemberId
+      ) {
+        throw new Error(
+          "Groom and Bride cannot be the same person"
+        );
+      }
+
+      // Same family validation
+      if (
+        groomMember &&
+        brideMember &&
+        groomMember.family_id === brideMember.family_id
+      ) {
+        throw new Error(
+          "Groom and Bride cannot belong to the same family"
+        );
+      }
+
+      const belongsToFamily =
+        groomMember?.family_id === payload.family_id ||
+        brideMember?.family_id === payload.family_id;
+
+      if (!belongsToFamily) {
+        throw new Error(
+          "Either groom or bride must belong to your family"
+        );
+      }
+    }
+
+    // =========================
+    // BAPTISM VALIDATION
+    // =========================
+
+    if (payload.type === "BAPTISM") {
+
+      const {
+        fatherMembership,
+        motherMembership,
+        fatherMemberId,
+        motherMemberId,
+      } = payload.payload;
+
+      // Only validate when BOTH are parish members
+
+      if (
+        fatherMembership === "parish" &&
+        motherMembership === "parish"
+      ) {
+
+        const father =
+          await prisma.member.findUnique({
+            where: {
+              id: fatherMemberId,
+            },
+            select: {
+              id: true,
+              family_id: true,
+              tenant_id: true,
+              husband_id: true,
+            },
+          });
+
+        const mother =
+          await prisma.member.findUnique({
+            where: {
+              id: motherMemberId,
+            },
+            select: {
+              id: true,
+              family_id: true,
+              tenant_id: true,
+              husband_id: true,
+            },
+          });
+
+        if (!father || !mother) {
+          throw new Error(
+            "Invalid parent selected"
+          );
+        }
+
+        if (
+          father.tenant_id !== payload.tenant_id ||
+          mother.tenant_id !== payload.tenant_id
+        ) {
+          throw new Error(
+            "Selected parish member does not belong to this parish"
+          );
+        }
+
+        if (
+          fatherMemberId === motherMemberId
+        ) {
+          throw new Error(
+            "Father and Mother cannot be the same person"
+          );
+        }
+
+        if (
+          mother.husband_id !== father.id
+        ) {
+          throw new Error(
+            "Selected Father and Mother are not spouses"
+          );
+        }
+      }
+    }
+
     const request =
       await prisma.request.create({
         data: payload,
