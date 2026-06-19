@@ -1,4 +1,5 @@
 import prisma from "../../config/prisma";
+import { AppError } from "../../utils/AppError";
 
 import { notifyTenantAdmins }
   from "../notifications/notification.helper";
@@ -41,9 +42,11 @@ export const createRequestService =
         groomMembership === "nonParish" &&
         brideMembership === "nonParish"
       ) {
-        throw new Error(
-          "At least one party must be a parish member"
+        throw new AppError(
+          "At least one party must be a parish member",
+          400
         );
+
       }
 
       const groomMember =
@@ -51,8 +54,10 @@ export const createRequestService =
           ? await prisma.member.findUnique({
             where: { id: groomMemberId },
             select: {
+              id: true,
               family_id: true,
               tenant_id: true,
+              is_deceased: true,
             },
           })
           : null;
@@ -62,11 +67,34 @@ export const createRequestService =
           ? await prisma.member.findUnique({
             where: { id: brideMemberId },
             select: {
+              id: true,
               family_id: true,
               tenant_id: true,
+              husband_id: true,
+              is_deceased: true,
             },
           })
           : null;
+
+      if (
+        groomMembership === "parish" &&
+        !groomMember
+      ) {
+        throw new AppError(
+          "Invalid groom selected",
+          400
+        );
+      }
+
+      if (
+        brideMembership === "parish" &&
+        !brideMember
+      ) {
+        throw new AppError(
+          "Invalid bride selected",
+          400
+        );
+      }
 
       // Tenant validation
       const groomValid =
@@ -78,9 +106,59 @@ export const createRequestService =
         brideMember.tenant_id === payload.tenant_id;
 
       if (!groomValid || !brideValid) {
-        throw new Error(
-          "Selected parish member does not belong to this parish"
+        throw new AppError(
+          "Selected parish member does not belong to this parish",
+          400
         );
+      }
+
+      if (groomMember?.is_deceased) {
+        throw new AppError(
+          "Deceased member cannot be selected as groom",
+          400
+        );
+      }
+
+      if (brideMember?.is_deceased) {
+        throw new AppError(
+          "Deceased member cannot be selected as bride",
+          400
+        );
+      }
+
+      if (
+        brideMembership === "parish" &&
+        brideMember?.husband_id
+      ) {
+        throw new AppError(
+          "Bride is already married",
+          400
+        );
+      }
+
+      if (
+        groomMembership === "parish" &&
+        groomMember
+      ) {
+
+        const existingWife =
+          await prisma.member.findFirst({
+            where: {
+              husband_id: groomMember.id,
+              is_deleted: false,
+              is_deceased: false,
+            },
+            select: {
+              id: true,
+            },
+          });
+
+        if (existingWife) {
+          throw new AppError(
+            "Groom is already married",
+            400
+          );
+        }
       }
 
       // Same person validation
@@ -89,8 +167,9 @@ export const createRequestService =
         brideMemberId &&
         groomMemberId === brideMemberId
       ) {
-        throw new Error(
-          "Groom and Bride cannot be the same person"
+        throw new AppError(
+          "Groom and Bride cannot be the same person",
+          400
         );
       }
 
@@ -100,9 +179,51 @@ export const createRequestService =
         brideMember &&
         groomMember.family_id === brideMember.family_id
       ) {
-        throw new Error(
-          "Groom and Bride cannot belong to the same family"
+        throw new AppError(
+          "Groom and Bride cannot belong to the same family",
+          400
         );
+      }
+
+      if (
+        groomMemberId &&
+        brideMemberId
+      ) {
+
+        const existingRequests =
+          await prisma.request.findMany({
+            where: {
+              tenant_id: payload.tenant_id,
+              type: "MARRIAGE",
+              status: "PENDING",
+            },
+            select: {
+              payload: true,
+            },
+          });
+
+        for (const request of existingRequests) {
+
+          const existingPayload =
+            request.payload as any;
+
+          const sameCouple =
+            (
+              existingPayload.groomMemberId === groomMemberId &&
+              existingPayload.brideMemberId === brideMemberId
+            ) ||
+            (
+              existingPayload.groomMemberId === brideMemberId &&
+              existingPayload.brideMemberId === groomMemberId
+            );
+
+          if (sameCouple) {
+            throw new AppError(
+              "A marriage request for this couple is already pending",
+              400
+            );
+          }
+        }
       }
 
       const belongsToFamily =
@@ -110,8 +231,9 @@ export const createRequestService =
         brideMember?.family_id === payload.family_id;
 
       if (!belongsToFamily) {
-        throw new Error(
-          "Either groom or bride must belong to your family"
+        throw new AppError(
+          "Either groom or bride must belong to your family",
+          400
         );
       }
     }
@@ -127,7 +249,120 @@ export const createRequestService =
         motherMembership,
         fatherMemberId,
         motherMemberId,
+        fatherName,
+        motherName,
+        fatherParishName,
+        motherParishName,
+        officialName,
+        dateOfBirth,
+        baptismName,
+        preferredDate
       } = payload.payload;
+
+      if (!officialName?.trim()) {
+        throw new AppError(
+          "Child official name is required",
+          400
+        );
+      }
+
+      if (!baptismName?.trim()) {
+        throw new AppError(
+          "Child baptism name is required",
+          400
+        );
+      }
+
+      if (!dateOfBirth) {
+        throw new AppError(
+          "Date of birth is required",
+          400
+        );
+      }
+
+      if (preferredDate) {
+
+        const selectedDate =
+          new Date(preferredDate);
+
+        selectedDate.setHours(0, 0, 0, 0);
+
+        const today =
+          new Date();
+
+        today.setHours(0, 0, 0, 0);
+
+        if (selectedDate < today) {
+          throw new AppError(
+            "Preferred baptism date cannot be in the past",
+            400
+          );
+        }
+      }
+
+      if (
+        fatherMembership &&
+        !["parish", "nonParish"].includes(
+          fatherMembership
+        )
+      ) {
+        throw new AppError(
+          "Invalid father membership type",
+          400
+        );
+      }
+
+      if (
+        motherMembership &&
+        !["parish", "nonParish"].includes(
+          motherMembership
+        )
+      ) {
+        throw new AppError(
+          "Invalid mother membership type",
+          400
+        );
+      }
+
+      if (
+        fatherMembership === "nonParish" &&
+        !fatherName?.trim()
+      ) {
+        throw new AppError(
+          "Father name is required",
+          400
+        );
+      }
+
+      if (
+        motherMembership === "nonParish" &&
+        !motherName?.trim()
+      ) {
+        throw new AppError(
+          "Mother name is required",
+          400
+        );
+      }
+
+      if (
+        fatherMembership === "nonParish" &&
+        !fatherParishName?.trim()
+      ) {
+        throw new AppError(
+          "Father parish name is required",
+          400
+        );
+      }
+
+      if (
+        motherMembership === "nonParish" &&
+        !motherParishName?.trim()
+      ) {
+        throw new AppError(
+          "Mother parish name is required",
+          400
+        );
+      }
 
       // Only validate when BOTH are parish members
 
@@ -163,8 +398,9 @@ export const createRequestService =
           });
 
         if (!father || !mother) {
-          throw new Error(
-            "Invalid parent selected"
+          throw new AppError(
+            "Invalid parent selected",
+            400
           );
         }
 
@@ -172,24 +408,141 @@ export const createRequestService =
           father.tenant_id !== payload.tenant_id ||
           mother.tenant_id !== payload.tenant_id
         ) {
-          throw new Error(
-            "Selected parish member does not belong to this parish"
+          throw new AppError(
+            "Selected parish member does not belong to this parish",
+            400
           );
         }
 
         if (
           fatherMemberId === motherMemberId
         ) {
-          throw new Error(
-            "Father and Mother cannot be the same person"
+          throw new AppError(
+            "Father and Mother cannot be the same person",
+            400
           );
         }
 
         if (
           mother.husband_id !== father.id
         ) {
-          throw new Error(
-            "Selected Father and Mother are not spouses"
+          throw new AppError(
+            "Selected Father and Mother are not spouses",
+            400
+          );
+        }
+      }
+
+      const existingRequests =
+        await prisma.request.findMany({
+          where: {
+            tenant_id: payload.tenant_id,
+            type: "BAPTISM",
+            status: "PENDING",
+          },
+          select: {
+            payload: true,
+          },
+        });
+
+      for (const request of existingRequests) {
+
+        const existingPayload =
+          request.payload as any;
+
+        if (
+          existingPayload.officialName?.trim().toLowerCase() ===
+          payload.payload.officialName?.trim().toLowerCase() &&
+          existingPayload.dateOfBirth ===
+          payload.payload.dateOfBirth
+        ) {
+          throw new AppError(
+            "A baptism request for this child is already pending",
+            400
+          );
+        }
+      }
+    }
+
+    // =========================
+    // DEATH_REGISTRATION VALIDATION
+    // =========================
+
+    if (payload.type === "DEATH_REGISTRATION") {
+
+      const { deceasedMemberId } =
+        payload.payload;
+
+      const existingRequests =
+        await prisma.request.findMany({
+
+          where: {
+            tenant_id: payload.tenant_id,
+            type: "DEATH_REGISTRATION",
+            status: "PENDING",
+          },
+
+          select: {
+            payload: true,
+          },
+
+        });
+
+      for (const request of existingRequests) {
+
+        const existingPayload =
+          request.payload as any;
+
+        if (
+          existingPayload.deceasedMemberId ===
+          deceasedMemberId
+        ) {
+          throw new AppError(
+            "A death registration request for this member is already pending",
+            400
+          );
+        }
+      }
+    }
+
+    // =========================
+    // CERTIFICATE VALIDATION
+    // =========================
+
+    if (payload.type === "CERTIFICATE") {
+
+      const {
+        memberId,
+        certificateType,
+      } = payload.payload;
+
+      const existingRequests =
+        await prisma.request.findMany({
+
+          where: {
+            tenant_id: payload.tenant_id,
+            type: "CERTIFICATE",
+            status: "PENDING",
+          },
+
+          select: {
+            payload: true,
+          },
+
+        });
+
+      for (const request of existingRequests) {
+
+        const existingPayload =
+          request.payload as any;
+
+        if (
+          existingPayload.memberId === memberId &&
+          existingPayload.certificateType === certificateType
+        ) {
+          throw new AppError(
+            "A certificate request of this type is already pending for this member",
+            400
           );
         }
       }

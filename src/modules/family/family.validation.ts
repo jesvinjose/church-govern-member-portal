@@ -93,6 +93,8 @@ export const createMemberSchema = z.object({
 
   relation_id: z.string().uuid().optional(),
 
+  husband_id: z.string().uuid().optional(),
+
 }).refine(
   (data) => data.email || data.phone,
   {
