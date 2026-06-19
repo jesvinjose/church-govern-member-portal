@@ -39,6 +39,26 @@ export const createRequestService =
       } = payload.payload;
 
       if (
+        groomMembership === "parish" &&
+        !groomMemberId
+      ) {
+        throw new AppError(
+          "Groom member is required",
+          400
+        );
+      }
+
+      if (
+        brideMembership === "parish" &&
+        !brideMemberId
+      ) {
+        throw new AppError(
+          "Bride member is required",
+          400
+        );
+      }
+
+      if (
         groomMembership === "nonParish" &&
         brideMembership === "nonParish"
       ) {
@@ -300,6 +320,20 @@ export const createRequestService =
         }
       }
 
+      if (!fatherMembership) {
+        throw new AppError(
+          "Father membership is required",
+          400
+        );
+      }
+
+      if (!motherMembership) {
+        throw new AppError(
+          "Mother membership is required",
+          400
+        );
+      }
+
       if (
         fatherMembership &&
         !["parish", "nonParish"].includes(
@@ -364,14 +398,19 @@ export const createRequestService =
         );
       }
 
-      // Only validate when BOTH are parish members
+      let father = null;
+      let mother = null;
 
-      if (
-        fatherMembership === "parish" &&
-        motherMembership === "parish"
-      ) {
+      if (fatherMembership === "parish") {
 
-        const father =
+        if (!fatherMemberId) {
+          throw new AppError(
+            "Father member is required",
+            400
+          );
+        }
+
+        father =
           await prisma.member.findUnique({
             where: {
               id: fatherMemberId,
@@ -381,10 +420,44 @@ export const createRequestService =
               family_id: true,
               tenant_id: true,
               husband_id: true,
+              is_deceased: true,
             },
           });
 
-        const mother =
+        if (!father) {
+          throw new AppError(
+            "Invalid father selected",
+            400
+          );
+        }
+
+        if (
+          father.tenant_id !== payload.tenant_id
+        ) {
+          throw new AppError(
+            "Selected father does not belong to this parish",
+            400
+          );
+        }
+
+        if (father.is_deceased) {
+          throw new AppError(
+            "Deceased member cannot be selected as father",
+            400
+          );
+        }
+      }
+
+      if (motherMembership === "parish") {
+
+        if (!motherMemberId) {
+          throw new AppError(
+            "Mother member is required",
+            400
+          );
+        }
+
+        mother =
           await prisma.member.findUnique({
             where: {
               id: motherMemberId,
@@ -394,25 +467,58 @@ export const createRequestService =
               family_id: true,
               tenant_id: true,
               husband_id: true,
+              is_deceased: true,
             },
           });
 
-        if (!father || !mother) {
+        if (!mother) {
           throw new AppError(
-            "Invalid parent selected",
+            "Invalid mother selected",
             400
           );
         }
 
         if (
-          father.tenant_id !== payload.tenant_id ||
           mother.tenant_id !== payload.tenant_id
         ) {
           throw new AppError(
-            "Selected parish member does not belong to this parish",
+            "Selected mother does not belong to this parish",
             400
           );
         }
+
+        if (mother.is_deceased) {
+          throw new AppError(
+            "Deceased member cannot be selected as mother",
+            400
+          );
+        }
+      }
+
+      if (
+        fatherMembership === "parish" &&
+        father?.family_id !== payload.family_id
+      ) {
+        throw new AppError(
+          "Father must belong to your family",
+          400
+        );
+      }
+
+      if (
+        motherMembership === "parish" &&
+        mother?.family_id !== payload.family_id
+      ) {
+        throw new AppError(
+          "Mother must belong to your family",
+          400
+        );
+      }
+
+      if (
+        fatherMembership === "parish" &&
+        motherMembership === "parish"
+      ) {
 
         if (
           fatherMemberId === motherMemberId
@@ -424,7 +530,7 @@ export const createRequestService =
         }
 
         if (
-          mother.husband_id !== father.id
+          mother?.husband_id !== father?.id
         ) {
           throw new AppError(
             "Selected Father and Mother are not spouses",
@@ -432,6 +538,9 @@ export const createRequestService =
           );
         }
       }
+
+      const normalizedOfficialName =
+        officialName.trim().toLowerCase();
 
       const existingRequests =
         await prisma.request.findMany({
@@ -452,9 +561,9 @@ export const createRequestService =
 
         if (
           existingPayload.officialName?.trim().toLowerCase() ===
-          payload.payload.officialName?.trim().toLowerCase() &&
+          normalizedOfficialName &&
           existingPayload.dateOfBirth ===
-          payload.payload.dateOfBirth
+          dateOfBirth
         ) {
           throw new AppError(
             "A baptism request for this child is already pending",
@@ -472,6 +581,62 @@ export const createRequestService =
 
       const { deceasedMemberId } =
         payload.payload;
+
+      if (!deceasedMemberId) {
+        throw new AppError(
+          "Deceased member is required",
+          400
+        );
+      }
+
+      const deceasedMember =
+        await prisma.member.findUnique({
+          where: {
+            id: deceasedMemberId,
+          },
+          select: {
+            id: true,
+            tenant_id: true,
+            is_deceased: true,
+            family_id: true,
+          },
+        });
+
+      if (!deceasedMember) {
+        throw new AppError(
+          "Invalid member selected",
+          400
+        );
+      }
+
+      if (
+        deceasedMember.tenant_id !==
+        payload.tenant_id
+      ) {
+        throw new AppError(
+          "Member does not belong to this parish",
+          400
+        );
+      }
+
+      if (
+        deceasedMember.family_id !==
+        payload.family_id
+      ) {
+        throw new AppError(
+          "You can only register deaths for members in your family",
+          400
+        );
+      }
+
+      if (
+        deceasedMember.is_deceased
+      ) {
+        throw new AppError(
+          "Member is already marked as deceased",
+          400
+        );
+      }
 
       const existingRequests =
         await prisma.request.findMany({
@@ -515,6 +680,52 @@ export const createRequestService =
         memberId,
         certificateType,
       } = payload.payload;
+
+      if (!memberId) {
+        throw new AppError(
+          "Member is required",
+          400
+        );
+      }
+
+      const member =
+        await prisma.member.findUnique({
+          where: {
+            id: memberId,
+          },
+          select: {
+            id: true,
+            tenant_id: true,
+            family_id: true,
+          },
+        });
+
+      if (!member) {
+        throw new AppError(
+          "Invalid member selected",
+          400
+        );
+      }
+
+      if (
+        member.tenant_id !==
+        payload.tenant_id
+      ) {
+        throw new AppError(
+          "Member does not belong to this parish",
+          400
+        );
+      }
+
+      if (
+        member.family_id !==
+        payload.family_id
+      ) {
+        throw new AppError(
+          "You can only request certificates for members in your family",
+          400
+        );
+      }
 
       const existingRequests =
         await prisma.request.findMany({
@@ -583,22 +794,130 @@ export const createRequestService =
 
   };
 
-export const getMyRequestsService =
-  async (
-    member_id: string
-  ) => {
+export const getMyRequestsService = async (
+  member_id: string
+) => {
 
-    return prisma.request.findMany({
-      where: {
-        member_id,
+  const requests = await prisma.request.findMany({
+    where: {
+      member_id,
+    },
+    orderBy: {
+      created_at: "desc",
+    },
+  });
+
+  const memberIds = new Set<string>();
+
+  requests.forEach((request) => {
+
+    if (request.type === "MARRIAGE") {
+
+      const payload = request.payload as any;
+
+      if (payload?.groomMemberId) {
+        memberIds.add(payload.groomMemberId);
+      }
+
+      if (payload?.brideMemberId) {
+        memberIds.add(payload.brideMemberId);
+      }
+    }
+  });
+
+  const members = await prisma.member.findMany({
+    where: {
+      id: {
+        in: [...memberIds],
       },
+    },
+    select: {
+      id: true,
+      name: true, // change if your field is full_name/member_name
+    },
+  });
 
-      orderBy: {
-        created_at: "desc",
-      },
-    });
+  const memberMap = new Map(
+    members.map((member) => [
+      member.id,
+      member.name,
+    ])
+  );
 
-  };
+  return requests.map((request) => {
+
+    const payload = request.payload as any;
+
+    let summary = "-";
+
+    switch (request.type) {
+
+      case "BAPTISM":
+        summary =
+          payload?.officialName ||
+          payload?.baptismName ||
+          "-";
+        break;
+
+      case "MARRIAGE": {
+
+        const groomName =
+          payload?.groomName ||
+          memberMap.get(
+            payload?.groomMemberId
+          );
+
+        const brideName =
+          payload?.brideName ||
+          memberMap.get(
+            payload?.brideMemberId
+          );
+
+        summary =
+          `${groomName || "-"} & ${brideName || "-"}`;
+
+        break;
+      }
+
+      case "DEATH_REGISTRATION":
+        summary =
+          payload?.relationToReporter ||
+          payload?.relation_to_deceased ||
+          "Death Registration";
+        break;
+
+      case "CERTIFICATE":
+        summary =
+          payload?.certificateType ||
+          "-";
+        break;
+    }
+
+    return {
+      ...request,
+      summary,
+    };
+
+  });
+
+};
+
+// export const getMyRequestsService =
+//   async (
+//     member_id: string
+//   ) => {
+
+//     return prisma.request.findMany({
+//       where: {
+//         member_id,
+//       },
+
+//       orderBy: {
+//         created_at: "desc",
+//       },
+//     });
+
+//   };
 
 export const getAllRequestsService =
   async (
