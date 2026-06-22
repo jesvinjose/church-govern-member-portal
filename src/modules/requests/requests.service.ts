@@ -1,5 +1,7 @@
 import prisma from "../../config/prisma";
 import { AppError } from "../../utils/AppError";
+import { RequestType, RequestStatus, } from "@prisma/client";
+import { ALLOWED_CERTIFICATE_TYPES, CERTIFICATE_TYPES } from "../../constants/certificate.constants";
 
 import { notifyTenantAdmins }
   from "../notifications/notification.helper";
@@ -13,13 +15,9 @@ type CreateRequestPayload = {
 
   family_id: string;
 
-  type:
-  | "BAPTISM"
-  | "MARRIAGE"
-  | "DEATH_REGISTRATION"
-  | "CERTIFICATE";
+  type: RequestType;
 
-  payload: any;
+  payload: Record<string, any>;
 
   notes?: string;
 };
@@ -29,7 +27,7 @@ export const createRequestService =
     payload: CreateRequestPayload
   ) => {
 
-    if (payload.type === "MARRIAGE") {
+    if (payload.type === RequestType.MARRIAGE) {
 
       const {
         groomMembership,
@@ -214,8 +212,8 @@ export const createRequestService =
           await prisma.request.findMany({
             where: {
               tenant_id: payload.tenant_id,
-              type: "MARRIAGE",
-              status: "PENDING",
+              type: RequestType.MARRIAGE,
+              status: RequestStatus.PENDING,
             },
             select: {
               payload: true,
@@ -262,7 +260,7 @@ export const createRequestService =
     // BAPTISM VALIDATION
     // =========================
 
-    if (payload.type === "BAPTISM") {
+    if (payload.type === RequestType.BAPTISM) {
 
       const {
         fatherMembership,
@@ -546,8 +544,8 @@ export const createRequestService =
         await prisma.request.findMany({
           where: {
             tenant_id: payload.tenant_id,
-            type: "BAPTISM",
-            status: "PENDING",
+            type: RequestType.BAPTISM,
+            status: RequestStatus.PENDING,
           },
           select: {
             payload: true,
@@ -577,7 +575,7 @@ export const createRequestService =
     // DEATH_REGISTRATION VALIDATION
     // =========================
 
-    if (payload.type === "DEATH_REGISTRATION") {
+    if (payload.type === RequestType.DEATH_REGISTRATION) {
 
       const { deceasedMemberId } =
         payload.payload;
@@ -638,35 +636,29 @@ export const createRequestService =
         );
       }
 
-      const existingRequests =
-        await prisma.request.findMany({
-
+      const existingRequest =
+        await prisma.request.findFirst({
           where: {
             tenant_id: payload.tenant_id,
-            type: "DEATH_REGISTRATION",
-            status: "PENDING",
+            type: RequestType.DEATH_REGISTRATION,
+            status: RequestStatus.PENDING,
+
+            payload: {
+              path: ["deceasedMemberId"],
+              equals: deceasedMemberId,
+            },
           },
 
           select: {
-            payload: true,
+            id: true,
           },
-
         });
 
-      for (const request of existingRequests) {
-
-        const existingPayload =
-          request.payload as any;
-
-        if (
-          existingPayload.deceasedMemberId ===
-          deceasedMemberId
-        ) {
-          throw new AppError(
-            "A death registration request for this member is already pending",
-            400
-          );
-        }
+      if (existingRequest) {
+        throw new AppError(
+          "A death registration request for this member is already pending",
+          400
+        );
       }
     }
 
@@ -674,7 +666,7 @@ export const createRequestService =
     // CERTIFICATE VALIDATION
     // =========================
 
-    if (payload.type === "CERTIFICATE") {
+    if (payload.type === RequestType.CERTIFICATE) {
 
       const {
         memberId,
@@ -688,6 +680,24 @@ export const createRequestService =
         );
       }
 
+      if (!certificateType) {
+        throw new AppError(
+          "Certificate type is required",
+          400
+        );
+      }
+
+      if (
+        !ALLOWED_CERTIFICATE_TYPES.includes(
+          certificateType
+        )
+      ) {
+        throw new AppError(
+          "Invalid certificate type",
+          400
+        );
+      }
+
       const member =
         await prisma.member.findUnique({
           where: {
@@ -697,6 +707,7 @@ export const createRequestService =
             id: true,
             tenant_id: true,
             family_id: true,
+            is_deceased: true,
           },
         });
 
@@ -727,13 +738,24 @@ export const createRequestService =
         );
       }
 
+      if (
+        certificateType ===
+        CERTIFICATE_TYPES.DEATH &&
+        !member.is_deceased
+      ) {
+        throw new AppError(
+          "Death certificate can only be requested for deceased members",
+          400
+        );
+      }
+
       const existingRequests =
         await prisma.request.findMany({
 
           where: {
             tenant_id: payload.tenant_id,
-            type: "CERTIFICATE",
-            status: "PENDING",
+            type: RequestType.CERTIFICATE,
+            status: RequestStatus.PENDING,
           },
 
           select: {
@@ -811,9 +833,9 @@ export const getMyRequestsService = async (
 
   requests.forEach((request) => {
 
-    if (request.type === "MARRIAGE") {
+    if (request.type === RequestType.MARRIAGE) {
 
-      const payload = request.payload as any;
+      const payload = request.payload as Record<string, any>;
 
       if (payload?.groomMemberId) {
         memberIds.add(payload.groomMemberId);
@@ -852,14 +874,14 @@ export const getMyRequestsService = async (
 
     switch (request.type) {
 
-      case "BAPTISM":
+      case RequestType.BAPTISM:
         summary =
           payload?.officialName ||
           payload?.baptismName ||
           "-";
         break;
 
-      case "MARRIAGE": {
+      case RequestType.MARRIAGE: {
 
         const groomName =
           payload?.groomName ||
@@ -879,16 +901,18 @@ export const getMyRequestsService = async (
         break;
       }
 
-      case "DEATH_REGISTRATION":
+      case RequestType.DEATH_REGISTRATION:
         summary =
           payload?.relationToReporter ||
           payload?.relation_to_deceased ||
           "Death Registration";
         break;
 
-      case "CERTIFICATE":
+      case RequestType.CERTIFICATE:
         summary =
-          payload?.certificateType ||
+          payload?.certificateType
+            ?.replaceAll("_", " ")
+            ?.toUpperCase() ||
           "-";
         break;
     }
@@ -901,23 +925,6 @@ export const getMyRequestsService = async (
   });
 
 };
-
-// export const getMyRequestsService =
-//   async (
-//     member_id: string
-//   ) => {
-
-//     return prisma.request.findMany({
-//       where: {
-//         member_id,
-//       },
-
-//       orderBy: {
-//         created_at: "desc",
-//       },
-//     });
-
-//   };
 
 export const getAllRequestsService =
   async (
@@ -1044,7 +1051,7 @@ export const updateRequestStatusService =
       request.type
       ) {
 
-        case "MARRIAGE":
+        case RequestType.MARRIAGE:
 
           const member =
             await prisma.member.findUnique({
@@ -1088,7 +1095,7 @@ export const updateRequestStatusService =
 
           break;
 
-        case "DEATH_REGISTRATION":
+        case RequestType.DEATH_REGISTRATION:
 
           await prisma.member.update({
 
@@ -1115,12 +1122,12 @@ export const updateRequestStatusService =
 
           break;
 
-        case "BAPTISM":
+        case RequestType.BAPTISM:
 
           // Future implementation
           break;
 
-        case "CERTIFICATE":
+        case RequestType.CERTIFICATE:
 
           // No member update required
           break;
