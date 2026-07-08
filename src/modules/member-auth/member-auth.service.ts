@@ -311,6 +311,7 @@ export const getMemberSpouseService =
                     family_id: true,
                     gender: true,
                     husband_id: true,
+                    spouse_name: true
                 },
             });
 
@@ -319,6 +320,10 @@ export const getMemberSpouseService =
         }
 
         let spouse = null;
+
+        // --------------------------------------------------
+        // Case 1: Old relational data using husband_id
+        // --------------------------------------------------
 
         if (member.gender === "MALE") {
 
@@ -353,6 +358,30 @@ export const getMemberSpouseService =
                     });
 
             }
+        }
+
+        // --------------------------------------------------
+        // Case 2: New data using spouse_name
+        // --------------------------------------------------
+        if (!spouse && member.spouse_name) {
+
+            spouse = await prisma.member.findFirst({
+                where: {
+                    tenant_id,
+                    family_id: member.family_id,
+                    name: {
+                        equals: member.spouse_name,
+                        mode: "insensitive",
+                    },
+                    is_deleted: false,
+                    is_deceased: false,
+                },
+                select: {
+                    id: true,
+                    name: true,
+                },
+            });
+
         }
 
         return spouse;

@@ -268,6 +268,7 @@ model Member {
   Grave                   Grave[]
   marriagesAsHusband      Marriage[]              @relation("Husband")
   marriagesAsWife         Marriage[]              @relation("Wife")
+  MemberOTP               MemberOTP[]
   MemberSacrament         MemberSacrament[]
   family                  Family                  @relation(fields: [family_id], references: [id])
   father                  Member?                 @relation("FatherRelation", fields: [father_id], references: [id])
@@ -288,7 +289,6 @@ model Member {
   brideMarriages          SacramentMarriage[]     @relation("BrideMember")
   groomMarriages          SacramentMarriage[]     @relation("GroomMember")
   Transaction             Transaction[]
-  MemberOTP               MemberOTP[]
 
   @@map("members")
 }
@@ -1690,6 +1690,19 @@ model GraveSlot {
   @@map("grave_slots")
 }
 
+model MemberOTP {
+  id         String           @id @default(uuid())
+  code       String
+  expires_at DateTime
+  verified   Boolean          @default(false)
+  member_id  String
+  created_at DateTime         @default(now())
+  purpose    MemberOTPPurpose
+  member     Member           @relation(fields: [member_id], references: [id])
+
+  @@map("member_otp")
+}
+
 enum TenantStatus {
   ACTIVE
   INACTIVE
@@ -1776,6 +1789,7 @@ enum BroadcastType {
   SMS
   WHATSAPP
   EMAIL
+  ANNOUNCEMENT
 }
 
 enum BroadcastStatus {
@@ -1911,17 +1925,4 @@ enum MemberOTPPurpose {
   LOGIN
   VERIFY_PHONE
   VERIFY_EMAIL
-}
-
-model MemberOTP {
-  id         String           @id @default(uuid())
-  code       String
-  expires_at DateTime
-  verified   Boolean          @default(false)
-  member_id  String
-  created_at DateTime         @default(now())
-  purpose    MemberOTPPurpose
-  member     Member           @relation(fields: [member_id], references: [id])
-
-  @@map("member_otp")
 }

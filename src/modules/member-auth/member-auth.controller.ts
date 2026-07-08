@@ -143,6 +143,9 @@ export const getAllMyFamilyMembersDropdown =
             res: Response
         ) => {
 
+            console.log("tenant_id:",req.tenant_id);
+            console.log("family_id:",req.family_id);
+
             const members =
                 await getFamilyMembersDropdownService(
                     req.family_id as string,
