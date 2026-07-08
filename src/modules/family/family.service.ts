@@ -256,7 +256,17 @@ export const getFamilyMembersDropdownService =
 
 export const getParishMembersDropdownService =
   async (tenant_id: string,
-    gender?: Gender) => {
+    gender?: Gender,
+    request_type?: string) => {
+
+
+    const today = new Date();
+
+    const maleAgeLimit = new Date(today);
+    maleAgeLimit.setFullYear(today.getFullYear() - 21);
+
+    const femaleAgeLimit = new Date(today);
+    femaleAgeLimit.setFullYear(today.getFullYear() - 18);
 
     return prisma.member.findMany({
 
@@ -266,6 +276,23 @@ export const getParishMembersDropdownService =
         is_deceased: false,
         is_active: true,
         ...(gender && { gender }),
+        ...(request_type === "MARRIAGE" && {
+          marriage_date: null,
+
+          ...(gender === "MALE" && {
+            dob: {
+              not: null,
+              lte: maleAgeLimit,
+            },
+          }),
+
+          ...(gender === "FEMALE" && {
+            dob: {
+              not: null,
+              lte: femaleAgeLimit,
+            },
+          }),
+        }),
       },
 
       select: {

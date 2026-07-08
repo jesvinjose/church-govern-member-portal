@@ -15,7 +15,13 @@ import { errorMiddleware } from "./middlewares/error.middleware";
 
 const app = express();
 
-app.use(cors());
+app.use(cors({
+  origin: [
+    "http://192.168.7.147:4000",
+    "http://localhost:4000",
+  ],
+  credentials: true,
+}));
 
 app.use(express.json());
 

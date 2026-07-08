@@ -362,10 +362,15 @@ export const getParishMembersDropdown =
       const gender =
         req.query.gender as Gender | undefined;
 
+
+      const request_type =
+        req.query.request_type as string | undefined;
+
       const members =
         await getParishMembersDropdownService(
           req.tenant_id as string,
-          gender
+          gender,
+          request_type
         );
 
       return sendResponse(
