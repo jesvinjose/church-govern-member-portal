@@ -20,6 +20,18 @@ export interface MemberAuthRequest
 
 }
 
+interface MemberAccessTokenPayload {
+
+  id: string;
+
+  family_id: string;
+
+  tenant_id?: string;
+
+  token_type: "access";
+
+}
+
 export const memberAuthMiddleware = (
   req: MemberAuthRequest,
   res: Response,
@@ -39,8 +51,18 @@ export const memberAuthMiddleware = (
 
   }
 
+  if (!authHeader.startsWith("Bearer ")) {
+
+    return sendResponse(
+      res,
+      401,
+      "Invalid authorization format"
+    );
+
+  }
+
   const token =
-    authHeader.split(" ")[1];
+    authHeader.substring(7);
 
   if (!token) {
 
@@ -57,17 +79,10 @@ export const memberAuthMiddleware = (
     const decoded =
       jwt.verify(
         token,
-        process.env.JWT_SECRET as string
-      ) as {
-        member_id?: string;
-        family_id?: string;
-        tenant_id?: string;
-        token_type?: string;
-      };
+        process.env.MEMBER_ACCESS_TOKEN_SECRET as string
+      ) as MemberAccessTokenPayload;
 
-    if (decoded.token_type !== "member" ||
-      !decoded.member_id ||
-      !decoded.family_id) {
+    if (decoded.token_type !== "access") {
       return sendResponse(
         res,
         401,
@@ -76,23 +91,44 @@ export const memberAuthMiddleware = (
     }
 
     req.member_id =
-      decoded.member_id;
+      decoded.id;
 
     req.family_id =
       decoded.family_id;
 
     req.tenant_id =
       decoded.tenant_id;
-      
-    next();
+
+    return next();
 
   } catch (error) {
+
+    if (error instanceof jwt.TokenExpiredError) {
+
+      return sendResponse(
+        res,
+        401,
+        "Access token expired"
+      );
+
+    }
+
+    if (error instanceof jwt.JsonWebTokenError) {
+
+      return sendResponse(
+        res,
+        401,
+        "Invalid access token"
+      );
+
+    }
 
     return sendResponse(
       res,
       401,
-      "Invalid or expired token"
+      "Authentication failed"
     );
+
 
   }
 

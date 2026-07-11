@@ -1,12 +1,13 @@
 import { Request, Response } from "express";
 import { catchAsync } from "../../utils/catchAsync";
-import { generateMemberToken } from "../../utils/memberJwt";
 import { sendResponse } from "../../utils/response";
-import { getDeathRegistrationMembersDropdownService, getMemberSpouseService, getRelationsDropdownService, memberLoginService, sendMemberOtpService } from "./member-auth.service";
+import { getDeathRegistrationMembersDropdownService, getMemberSpouseService, getRelationsDropdownService, logoutMemberService, memberLoginService, refreshMemberTokenService, sendMemberOtpService } from "./member-auth.service";
 import { memberLoginSchema, sendMemberOtpSchema } from "./member-auth.validation";
 import { MemberAuthRequest } from "../../middlewares/memberAuth.middleware";
 import prisma from "../../config/prisma";
 import { getFamilyMembersDropdownService } from "../family/family.service";
+import { memberRefreshCookieOptions } from "../../config/memberCookie";
+import { getDeviceInfo } from "../../utils/deviceInfo";
 
 export const sendMemberOtp =
     catchAsync(
@@ -44,25 +45,22 @@ export const memberLogin =
                     req.body
                 );
 
-            const member =
-                await memberLoginService(
-                    validatedData
-                );
+            const {
+                member,
+                accessToken,
+                refreshToken,
+            } = await memberLoginService(validatedData,
+                getDeviceInfo(req));
 
-            const token =
-                generateMemberToken({
-                    member_id: member.id,
-                    family_id: member.family_id,
-                    tenant_id: member.tenant_id,
-                    "token_type": "member"
-                });
+            res.cookie("member_refresh_token", refreshToken,
+                memberRefreshCookieOptions);
 
             return sendResponse(
                 res,
                 200,
                 "Member login successful",
                 {
-                    token,
+                    accessToken,
                     member,
                 }
             );
@@ -143,8 +141,8 @@ export const getAllMyFamilyMembersDropdown =
             res: Response
         ) => {
 
-            console.log("tenant_id:",req.tenant_id);
-            console.log("family_id:",req.family_id);
+            console.log("tenant_id:", req.tenant_id);
+            console.log("family_id:", req.family_id);
 
             const members =
                 await getFamilyMembersDropdownService(
@@ -185,23 +183,91 @@ export const getRelationsDropdown =
     );
 
 export const getMemberSpouse =
-  catchAsync(
-    async (
-      req: MemberAuthRequest,
-      res: Response
-    ) => {
+    catchAsync(
+        async (
+            req: MemberAuthRequest,
+            res: Response
+        ) => {
 
-      const spouse =
-        await getMemberSpouseService(
-          req.params.memberId as string,
-          req.tenant_id as string
+            const spouse =
+                await getMemberSpouseService(
+                    req.params.memberId as string,
+                    req.tenant_id as string
+                );
+
+            return sendResponse(
+                res,
+                200,
+                "Spouse fetched successfully",
+                spouse
+            );
+        }
+    );
+
+export const refreshMemberToken =
+    catchAsync(
+        async (
+            req: Request,
+            res: Response
+        ) => {
+
+            const refreshToken =
+                req.cookies.member_refresh_token;
+
+            if (!refreshToken) {
+
+                return sendResponse(
+                    res,
+                    401,
+                    "Refresh token is required"
+                );
+
+            }
+
+            const result =
+                await refreshMemberTokenService(
+                    refreshToken,
+                    getDeviceInfo(req)
+                );
+
+            res.cookie(
+                "member_refresh_token",
+                result.refreshToken,
+                memberRefreshCookieOptions
+            );
+
+            return sendResponse(
+                res,
+                200,
+                "Token refreshed successfully",
+                {
+                    accessToken:
+                        result.accessToken,
+                }
+            );
+
+        }
+    );
+
+export const logoutMember =
+    catchAsync(async (req: Request, res: Response) => {
+
+        const refreshToken =
+            req.cookies.member_refresh_token;
+
+        if (refreshToken) {
+            await logoutMemberService(refreshToken);
+        }
+
+        res.clearCookie(
+            "member_refresh_token",
+            memberRefreshCookieOptions
         );
 
-      return sendResponse(
-        res,
-        200,
-        "Spouse fetched successfully",
-        spouse
-      );
-    }
-  );
+        return sendResponse(
+            res,
+            200,
+            "Logged out successfully"
+        );
+
+    });

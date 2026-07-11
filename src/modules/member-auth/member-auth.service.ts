@@ -2,6 +2,9 @@ import prisma from "../../config/prisma";
 import { generateOtp } from "../../utils/generateOtp";
 import { sendMail } from "../../utils/mail";
 import { MemberOTPPurpose } from "@prisma/client";
+import { generateMemberAccessToken, generateMemberRefreshToken, verifyMemberRefreshToken } from "../../utils/memberJwt";
+import { DeviceInfo } from "../../types/deviceInfo";
+import { getMemberRefreshTokenExpiry } from "../../utils/tokenExpiry";
 
 export const sendMemberOtpService =
     async (
@@ -117,7 +120,8 @@ export const memberLoginService =
             email?: string;
             phone?: string;
             otp: string;
-        }
+        },
+        deviceInfo: DeviceInfo
     ) => {
 
         let member = null;
@@ -202,7 +206,39 @@ export const memberLoginService =
             },
         });
 
-        return member;
+        const accessToken = generateMemberAccessToken({
+            id: member.id,
+            family_id: member.family_id,
+            tenant_id: member.tenant_id,
+        });
+
+        const refreshToken = generateMemberRefreshToken({
+            id: member.id,
+            family_id: member.family_id,
+            tenant_id: member.tenant_id,
+        });
+
+        await prisma.memberRefreshToken.create({
+            data: {
+                member_id: member.id,
+                refresh_token: refreshToken,
+                expires_at: new Date(
+                    Date.now() + 30 * 24 * 60 * 60 * 1000
+                ),
+                device_name: deviceInfo.device_name,
+                device_type: deviceInfo.device_type,
+                browser: deviceInfo.browser,
+                user_agent: deviceInfo.user_agent,
+                ip_address: deviceInfo.ip_address,
+                last_used_at: new Date(),
+            },
+        });
+
+        return {
+            member,
+            accessToken,
+            refreshToken,
+        };
     };
 
 export const getRelationsDropdownService =
@@ -386,3 +422,117 @@ export const getMemberSpouseService =
 
         return spouse;
     };
+
+export const refreshMemberTokenService = async (
+    refreshToken: string,
+    deviceInfo: DeviceInfo
+) => {
+
+    // Verify JWT signature
+    const payload =
+        verifyMemberRefreshToken(
+            refreshToken
+        ) as {
+            id: string;
+            family_id: string;
+            tenant_id?: string | null;
+            token_type: string;
+        };
+
+    if (payload.token_type !== "refresh") {
+        throw new Error("Invalid refresh token");
+    }
+
+    // Check whether this refresh token exists in DB
+    const storedToken =
+        await prisma.memberRefreshToken.findUnique({
+            where: {
+                refresh_token: refreshToken,
+            },
+        });
+
+    if (!storedToken) {
+        throw new Error("Refresh token not found");
+    }
+
+    if (storedToken.revoked) {
+        throw new Error("Refresh token has been revoked");
+    }
+
+    if (storedToken.expires_at < new Date()) {
+        await prisma.memberRefreshToken.update({
+            where: {
+                id: storedToken.id,
+            },
+            data: {
+                revoked: true,
+            },
+        });
+        throw new Error("Refresh token has expired");
+    }
+
+    // Get member
+    const member =
+        await prisma.member.findUnique({
+            where: {
+                id: payload.id,
+            },
+        });
+
+    if (
+        !member ||
+        !member.is_active ||
+        member.is_deleted
+    ) {
+        throw new Error("Member not found");
+    }
+
+    // Generate new tokens
+    const newAccessToken =
+        generateMemberAccessToken({
+            id: member.id,
+            family_id: member.family_id,
+            tenant_id: member.tenant_id,
+        });
+
+    const newRefreshToken =
+        generateMemberRefreshToken({
+            id: member.id,
+            family_id: member.family_id,
+            tenant_id: member.tenant_id,
+        });
+
+    // Rotate refresh token
+    await prisma.memberRefreshToken.update({
+        where: {
+            id: storedToken.id,
+        },
+        data: {
+            refresh_token: newRefreshToken,
+            expires_at: getMemberRefreshTokenExpiry(),
+            browser: deviceInfo.browser,
+            device_name: deviceInfo.device_name,
+            device_type: deviceInfo.device_type,
+            user_agent: deviceInfo.user_agent,
+            ip_address: deviceInfo.ip_address,
+            last_used_at: new Date(),
+        },
+    });
+
+    return {
+        accessToken: newAccessToken,
+        refreshToken: newRefreshToken,
+    };
+};
+
+export const logoutMemberService = async (
+    refreshToken: string
+) => {
+
+    await prisma.memberRefreshToken.deleteMany({
+        where: {
+            refresh_token: refreshToken,
+        },
+    });
+
+};

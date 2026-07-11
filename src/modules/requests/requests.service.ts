@@ -73,8 +73,11 @@ export const createRequestService =
             where: { id: groomMemberId },
             select: {
               id: true,
+              name: true,
               family_id: true,
               tenant_id: true,
+              husband_id: true,
+              spouse_name: true,
               is_deceased: true,
             },
           })
@@ -86,9 +89,11 @@ export const createRequestService =
             where: { id: brideMemberId },
             select: {
               id: true,
+              name: true,
               family_id: true,
               tenant_id: true,
               husband_id: true,
+              spouse_name: true,
               is_deceased: true,
             },
           })
@@ -144,9 +149,13 @@ export const createRequestService =
         );
       }
 
+      const brideAlreadyMarried =
+        !!brideMember?.husband_id ||
+        !!brideMember?.spouse_name;
+
       if (
         brideMembership === "parish" &&
-        brideMember?.husband_id
+        brideAlreadyMarried
       ) {
         throw new AppError(
           "Bride is already married",
@@ -171,7 +180,10 @@ export const createRequestService =
             },
           });
 
-        if (existingWife) {
+        const groomAlreadyMarried =
+          !!existingWife || !!groomMember.spouse_name;
+
+        if (groomAlreadyMarried) {
           throw new AppError(
             "Groom is already married",
             400
@@ -415,9 +427,11 @@ export const createRequestService =
             },
             select: {
               id: true,
+              name: true,
               family_id: true,
               tenant_id: true,
               husband_id: true,
+              spouse_name: true,
               is_deceased: true,
             },
           });
@@ -462,9 +476,11 @@ export const createRequestService =
             },
             select: {
               id: true,
+              name: true,
               family_id: true,
               tenant_id: true,
               husband_id: true,
+              spouse_name: true,
               is_deceased: true,
             },
           });
@@ -527,9 +543,40 @@ export const createRequestService =
           );
         }
 
+        // if (
+        //   mother?.husband_id !== father?.id
+        // ) {
+        //   throw new AppError(
+        //     "Selected Father and Mother are not spouses",
+        //     400
+        //   );
+        // }
+
+        let areSpouses = false;
+
+        // Old data
+        if (mother?.husband_id === father?.id) {
+          areSpouses = true;
+        }
+
+        // New data
         if (
-          mother?.husband_id !== father?.id
+          !areSpouses &&
+          father &&
+          mother &&
+          father.name &&
+          mother.name &&
+          father.spouse_name &&
+          mother.spouse_name
         ) {
+          areSpouses =
+            father.spouse_name.trim().toLowerCase() ===
+            mother?.name.trim().toLowerCase() &&
+            mother.spouse_name.trim().toLowerCase() ===
+            father?.name.trim().toLowerCase();
+        }
+
+        if (!areSpouses) {
           throw new AppError(
             "Selected Father and Mother are not spouses",
             400

@@ -9,7 +9,9 @@ import {
     getMyFamilyMembersDropdown,
     getAllMyFamilyMembersDropdown,
     getRelationsDropdown,
-    getMemberSpouse
+    getMemberSpouse,
+    refreshMemberToken,
+    logoutMember
 } from "./member-auth.controller";
 
 import { getMyFamily } from "../family/family.controller";
@@ -31,5 +33,9 @@ router.get("/family-members/all-dropdown", memberAuthMiddleware, getAllMyFamilyM
 router.get("/relations/dropdown", memberAuthMiddleware, getRelationsDropdown);
 
 router.get("/members/:memberId/spouse", memberAuthMiddleware, getMemberSpouse);
+
+router.post("/refresh-token", refreshMemberToken);
+
+router.post("/logout", logoutMember);
 
 export default router;
